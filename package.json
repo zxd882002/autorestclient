@@ -1,0 +1,43 @@
+{
+    "name": "autorestclient",
+    "displayName": "AutoRestClient",
+    "description": "Auto Rest Client",
+    "version": "0.0.1",
+    "engines": {
+        "vscode": "^1.46.0"
+    },
+    "activationEvents": [
+        "onLanguage:http"
+    ],
+    "main": "./client/out/extension.js",
+    "categories": [
+        "Programming Languages"
+    ],
+    "contributes": {
+        "languages": [
+            {
+                "id": "http",
+                "aliases": [
+                    "rest",
+                    "http"
+                ],
+                "extensions": [
+                    ".rest",
+                    ".http"
+                ],
+                "configuration": "./language-configuration.json"
+            }
+        ],
+        "grammars": [
+            {
+                "language": "http",
+                "scopeName": "source.http",
+                "path": "./syntaxes/http.tmLanguage.json"
+            }
+        ]
+    },
+    "dependencies": {
+        "@types/node": "^14.11.2",
+        "@types/vscode": "^1.49.0"
+    }
+}

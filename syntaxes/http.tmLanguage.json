@@ -1,0 +1,91 @@
+{
+	"name": "http",
+	"patterns": [
+		{
+			"include": "#comments"
+		},
+		{
+			"include": "#request"
+		}
+	],
+	"repository": {
+		"comments": {
+			"patterns": [
+				{
+					"match": "\\#{3,}",
+					"name": "comment.line.sharp.http"
+				}
+			]
+		},
+		"request": {
+			"patterns": [
+				{
+					"name": "http.macro",
+					"match": "(@\\w+)\\s+(\\w+)",
+					"captures": {
+						"1": {
+							"name": "keyword.http.macro"
+						},
+						"2": {
+							"name": "string.http.macro"
+						}
+					}
+				},
+				{
+					"name": "keyword.http.script",
+					"begin": "@{",
+					"end": "}",
+					"patterns": [
+						{
+							"include": "source.ts"
+						}
+					]
+				},
+				{
+					"begin": "{",
+					"end": "}",
+					"name": "keyword.http.request.body.json",
+					"patterns": [
+						{
+							"include": "source.json"
+						}
+					]
+				},
+				{
+					"captures": {
+						"1": {
+							"name": "keyword.http.request.method"
+						},
+						"2": {
+							"name": "string.http.request.url"
+						},
+						"3": {
+							"name": "keyword.http.request.http"
+						},
+						"4": {
+							"name": "constant.http.request.version"
+						}
+					},
+					"match": "(?i)^(?:(get|post|put|delete|patch|head|options|connect|trace)\\s+)(.+?)(?:\\s+(HTTP)\/(\\d+.\\d+))?$",
+					"name": "http.requestline"
+				},
+				{
+					"captures": {
+						"1": {
+							"name": "keyword.http.request.header.name"
+						},
+						"2": {
+							"name": "keyword.http.request.http"
+						},
+						"3": {
+							"name": "string.http.request.header.value"
+						}
+					},
+					"match": "^([\\w\\-]+)\\s*(\\:)\\s*(.*?)\\s*$",
+					"name": "http.headers"
+				}				
+			]
+		}
+	},
+	"scopeName": "source.http"
+}
