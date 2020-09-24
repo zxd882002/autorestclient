@@ -25,7 +25,7 @@
                     ".rest",
                     ".http"
                 ],
-                "configuration": "./language-configuration.json"
+                "configuration": "./configuration/language-configuration.json"
             }
         ],
         "grammars": [
