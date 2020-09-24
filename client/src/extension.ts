@@ -10,7 +10,7 @@ import {
 let client: LanguageClient;
 
 export function activate(context: vscode.ExtensionContext) {
-	vscode.window.showInformationMessage('');
+	vscode.window.showInformationMessage('Connecting...');
 
 	// The server is implemented in node
 	let serverOptions: ServerOptions = defineServerOptions(context);
@@ -35,6 +35,8 @@ export function activate(context: vscode.ExtensionContext) {
   
 	// Start the client. This will also launch the server
 	client.start();	
+
+	vscode.window.showInformationMessage('Connected');
 }
 
 function defineServerOptions(context : vscode.ExtensionContext) {
