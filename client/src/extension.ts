@@ -10,14 +10,12 @@ import {
 let client: LanguageClient;
 
 export function activate(context: vscode.ExtensionContext) {
-	vscode.window.showInformationMessage('Connecting...');
-
 	// The server is implemented in node
 	let serverOptions: ServerOptions = defineServerOptions(context);
   
 	// Options to control the language client
 	let clientOptions: LanguageClientOptions = {
-	  // Register the server for plain text documents
+	  // Register the server for http documents
 	  documentSelector: [{ scheme: 'file', language: 'http' }],
 	  synchronize: {
 		// Notify the server about file changes to '.clientrc files contained in the workspace
@@ -27,8 +25,8 @@ export function activate(context: vscode.ExtensionContext) {
   
 	// Create the language client and start the client.
 	client = new LanguageClient(
-	  'languageServerExample',
-	  'Language Server Example',
+	  'httpLsp',
+	  'Http Language Service Protocol',
 	  serverOptions,
 	  clientOptions
 	);

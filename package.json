@@ -39,5 +39,12 @@
     "dependencies": {
         "@types/node": "^14.11.2",
         "@types/vscode": "^1.49.0"
-    }
+    },
+    "scripts": {
+		"vscode:prepublish": "npm run compile",
+		"compile": "tsc -b ./",
+		"watch": "tsc -b -watch ./",
+		"pretest": "npm run compile && npm run lint",
+		"test": "node ./out/test/runTest.js"
+	}
 }
