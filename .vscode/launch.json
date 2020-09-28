@@ -10,10 +10,12 @@
             "type": "extensionHost",
             "request": "launch",
             "runtimeExecutable": "${execPath}",
-            "args": [
-                "--extensionDevelopmentPath=${workspaceFolder}"
-            ],
-            "preLaunchTask": "${defaultBuildTask}"
+            "args": ["--extensionDevelopmentPath=${workspaceRoot}"],
+			"outFiles": ["${workspaceRoot}/client/out/**/*.js"],
+			"preLaunchTask": {
+				"type": "npm",
+				"script": "watch"
+			}
         },
         {
             "name": "Attach to Server",
@@ -23,5 +25,11 @@
 			"restart": true,
 			"outFiles": ["${workspaceRoot}/server/out/**/*.js"]
 		}
-    ]
+    ],
+    "compounds": [
+		{
+			"name": "Client + Server",
+			"configurations": ["Launch Client", "Attach to Server"]
+		}
+	]
 }
