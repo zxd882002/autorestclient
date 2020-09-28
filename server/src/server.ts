@@ -1,45 +1,60 @@
 import {
-    createConnection,
-    TextDocuments,
-    ProposedFeatures,
-    InitializeParams,
-    CompletionItem,
-    TextDocumentPositionParams,
-    TextDocumentSyncKind,
-    InitializeResult
-  } from 'vscode-languageserver';
+  createConnection,
+  TextDocuments,
+  ProposedFeatures,
+  InitializeParams,
+  CompletionItem,
+  TextDocumentPositionParams,
+  TextDocumentSyncKind,
+  InitializeResult, CodeLensOptions, CodeLensParams, CodeLens, Range
+} from 'vscode-languageserver';
 
-  import { TextDocument } from 'vscode-languageserver-textdocument';
+import { TextDocument } from 'vscode-languageserver-textdocument';
 
-// Create a connection for the server, using Node's IPC as a transport.
-// Also include all preview / proposed LSP features.
 let connection = createConnection(ProposedFeatures.all);
 
-// Create a simple text document manager.
 let documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
 
-connection.onInitialize((params: InitializeParams): InitializeResult => {
-  console.log("on initialize");
+// documents.onDidChangeContent(async change =>{
+//     console.log("on change");
+// });
 
-  const result: InitializeResult = {
+connection.onInitialize((params: InitializeParams) => {
+  let capabilities = params.capabilities;
+
+  return {
     capabilities: {
-      textDocumentSync: TextDocumentSyncKind.Incremental,      
+      textDocumentSync: TextDocumentSyncKind.Incremental,
+      codeLensProvider: {
+        resolveProvider: true
+      }
     }
   };
-  return result;
 });
 
-connection.onInitialized(() => {
-  console.log("on initialized");
+export const LineSplitterRegex: RegExp = /\r?\n/g;
+
+connection.onCodeLens((codelensParam: CodeLensParams): CodeLens[] => {
+  let codeLenses: CodeLens[] = [];
+  let document: TextDocument = documents.get(codelensParam.textDocument.uri) as TextDocument;
+  let lines = document.getText().split(LineSplitterRegex);
+  let range: Range =
+  {
+    start: { line: 0, character: 0 },
+    end: { line: lines.length, character: 0 }
+  };
+  let codeLens: CodeLens = {
+    range: range,
+    command: {
+      arguments: [document, range],
+      title: 'Send Request',
+      command: 'auto-rest-client.request'
+    }
+  };  
+  codeLenses.push(codeLens);
+  return codeLenses;
 });
 
-documents.onDidChangeContent(async change =>{
-    console.log("on change");
-})
-
-// Make the text document manager listen on the connection
-// for open, change and close text document events
 documents.listen(connection);
 
-// Listen on the connection
 connection.listen();

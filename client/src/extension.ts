@@ -16,11 +16,7 @@ export function activate(context: vscode.ExtensionContext) {
 	// Options to control the language client
 	let clientOptions: LanguageClientOptions = {
 	  // Register the server for http documents
-	  documentSelector: [{ scheme: 'file', language: 'http' }],
-	  synchronize: {
-		// Notify the server about file changes to '.clientrc files contained in the workspace
-		fileEvents: vscode.workspace.createFileSystemWatcher('**/.clientrc')
-	  }
+	  documentSelector: [{ scheme: 'file', language: 'http' }]	 
 	};
   
 	// Create the language client and start the client.
@@ -34,7 +30,7 @@ export function activate(context: vscode.ExtensionContext) {
 	// Start the client. This will also launch the server
 	client.start();	
 
-	vscode.window.showInformationMessage('Connected');
+	vscode.window.showInformationMessage('Connected!');
 }
 
 function defineServerOptions(context : vscode.ExtensionContext) {
