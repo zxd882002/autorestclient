@@ -3,10 +3,10 @@ import {
   TextDocuments,
   ProposedFeatures,
   InitializeParams,
-  CompletionItem,
-  TextDocumentPositionParams,
   TextDocumentSyncKind,
-  InitializeResult, CodeLensOptions, CodeLensParams, CodeLens, Range
+  CodeLensParams, 
+  CodeLens, 
+  Range
 } from 'vscode-languageserver';
 
 import { TextDocument } from 'vscode-languageserver-textdocument';
@@ -15,10 +15,6 @@ let connection = createConnection(ProposedFeatures.all);
 
 let documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
 
-// documents.onDidChangeContent(async change =>{
-//     console.log("on change");
-// });
-
 connection.onInitialize((params: InitializeParams) => {
   let capabilities = params.capabilities;
 
@@ -26,7 +22,7 @@ connection.onInitialize((params: InitializeParams) => {
     capabilities: {
       textDocumentSync: TextDocumentSyncKind.Incremental,
       codeLensProvider: {
-        resolveProvider: true
+        resolveProvider: false
       }
     }
   };
@@ -46,7 +42,7 @@ connection.onCodeLens((codelensParam: CodeLensParams): CodeLens[] => {
   let codeLens: CodeLens = {
     range: range,
     command: {
-      arguments: [document, range],
+      arguments: [lines],
       title: 'Send Request',
       command: 'auto-rest-client.request'
     }

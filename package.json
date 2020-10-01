@@ -6,12 +6,19 @@
     "engines": {
         "vscode": "^1.46.0"
     },
-    "activationEvents": [
-        "onLanguage:http"
-    ],
     "main": "./client/out/extension.js",
     "categories": [
         "Programming Languages"
+    ],
+    "activationEvents": [
+        "onLanguage:http"
+    ],
+    "commands": [
+        {
+            "command": "auto.rest-client.request",
+            "title": "Send Request",
+            "category": "Rest Client"
+        }
     ],
     "contributes": {
         "languages": [
@@ -39,12 +46,16 @@
     "scripts": {
         "vscode:prepublish": "npm run compile",
         "compile": "tsc -b",
-		"watch": "tsc -b -w",
+        "watch": "tsc -b -w",
         "postinstall": "cd client && npm install && cd ../server && npm install && cd ..",
         "test": "node ./out/test/runTest.js"
     },
     "devDependencies": {
         "@types/node": "^14.11.2",
         "@types/vscode": "^1.49.0"
+    },
+    "dependencies": {
+        "node": "^14.13.0",
+        "vscode": "^1.1.37"
     }
 }
