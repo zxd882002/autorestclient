@@ -9,6 +9,7 @@ import {
 
 import * as http from 'http';
 import got = require('got');
+import { cwd } from 'process';
 
 export type ResponseHeaders = http.IncomingHttpHeaders;
 export type RequestHeaders = http.OutgoingHttpHeaders;
@@ -21,7 +22,9 @@ export class HttpRequest {
 		public method: string,
 		public url: string,
 		public headers: RequestHeaders,
-		public body?: string) {
+		public body: string,
+		public beforeScript: string,
+		public afterScript: string) {
 		this.method = method.toLocaleUpperCase();
 	}
 }
@@ -42,8 +45,11 @@ export function activate(context: vscode.ExtensionContext) {
 		try {
 			console.log("start request");
 			let httpRequest: HttpRequest = convertToHttpRequest(lines);
+			executeScript(httpRequest.beforeScript);
 			let response: HttpResponse = await send(httpRequest);
 			console.log(response.body);
+			executeScript(httpRequest.afterScript);
+			displayOnWebView(response, context);
 		}
 		catch (e) {
 			console.log(e);
@@ -99,21 +105,28 @@ function defineServerOptions(context: vscode.ExtensionContext) {
 export const LineSplitterRegex: RegExp = /\r?\n/g;
 export const RequestLine: RegExp = /^(?:(?<method>get|post|put|delete|patch|head|options|connect|trace)\s+)(?<url>.+?)(?:\s+(HTTP)\/(\d+.\d+))?$/i;
 export const HeaderLine: RegExp = /^(?<headerName>[\w\-]+)\s*(\:)\s*(?<headerValue>.*?)\s*$/;
-export const BodyStart: RegExp = /^\s*{\s*$/;
-export const BodyEnd: RegExp = /^\s*}\s*$/;
+export const BodyStart: RegExp = /^\s*{\s*$/;	
+export const ScriptStart: RegExp = /^\s*@{\s*$/;
+export const End: RegExp = /^\s*}\s*$/;
 
 function convertToHttpRequest(lines: string[]): HttpRequest {
 	let method: string;
 	let url: string;
 	let headers: RequestHeaders = {};
 	let body: string = "";
+	let beforeScript: string = "";
+	let afterScript: string = "";
 
+	let scriptPosition:string = "before"; // before, after
 	let collectBody: boolean = false;
+	let collectBeforeScript: boolean = false;
+	let collectAfterScript: boolean = false;
 	lines.forEach(line => {
 		const isMatchRequestLine: RegExpMatchArray = line.match(RequestLine);
 		if (isMatchRequestLine !== null) {
 			method = isMatchRequestLine.groups["method"];
 			url = isMatchRequestLine.groups["url"];
+			scriptPosition = "after";
 			return;
 		}
 
@@ -130,17 +143,57 @@ function convertToHttpRequest(lines: string[]): HttpRequest {
 			collectBody = true;
 		}
 
-		if (collectBody) {
-			body += line;
+		const isMatchScriptStart: boolean = ScriptStart.test(line);
+		if (isMatchScriptStart) {
+			if(scriptPosition === "before"){
+				collectBeforeScript= true;
+			} else {
+				collectAfterScript= true;
+			}
+
+			return;
 		}
 
-		const isMatchBodyEnd: boolean = BodyEnd.test(line);
-		if (isMatchBodyEnd) {
+		if (collectBody) {
+			body += line;
+		}		
+
+		const isMatchEnd: boolean = End.test(line);
+		if (isMatchEnd) {
 			collectBody = false;
+			collectBeforeScript = false;
+			collectAfterScript = false;
+		}
+
+		if (collectBeforeScript){
+			beforeScript += line;
+			beforeScript += "\r\n";
+		}
+
+		if (collectAfterScript){
+			afterScript += line;
+			beforeScript += "\r\n";
 		}
 	});
 
-	return new HttpRequest(method, url, headers, body);
+	return new HttpRequest(method, url, headers, body, beforeScript, afterScript);
+}
+
+export class AutoRestClient{
+
+	public SetEnvironmentVariable(name:string, value:string)
+	{
+		console.log(`call AutoRestClient SetEnvironmentVariable() method, name = ${name}, value=${value}`)
+	}
+	
+	public Show() {
+		console.log("call AutoRestClient Show() method")
+	}
+}
+
+function executeScript(script: string): void{
+	console.log(`execute script: ${script}`);
+	eval(script);
 }
 
 async function send(httpRequest: HttpRequest): Promise<HttpResponse> {
@@ -189,6 +242,14 @@ function normalizeHeaderNames<T extends RequestHeaders | ResponseHeaders>(header
 	return adjustedResponseHeaders as T;
 }
 
+async function displayOnWebView(response: HttpResponse, context: vscode.ExtensionContext): Promise<void>{
+	try {
+		let responseDocument: vscode.TextDocument = await vscode.workspace.openTextDocument({ language: 'json', content: JSON.stringify(response, null, 4) });
+		await vscode.window.showTextDocument(responseDocument)		
+	} catch (reason) {
+		vscode.window.showErrorMessage(reason);
+	}
+}
 
 function prepareOptions(httpRequest: HttpRequest): got.GotBodyOptions<null> {
 	const options: got.GotBodyOptions<null> = {

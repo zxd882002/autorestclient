@@ -16,8 +16,6 @@ let connection = createConnection(ProposedFeatures.all);
 let documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
 
 connection.onInitialize((params: InitializeParams) => {
-  let capabilities = params.capabilities;
-
   return {
     capabilities: {
       textDocumentSync: TextDocumentSyncKind.Incremental,
