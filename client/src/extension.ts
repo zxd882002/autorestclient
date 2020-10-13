@@ -8,8 +8,7 @@ import {
 } from 'vscode-languageclient';
 
 import * as http from 'http';
-import got = require('got');
-import { cwd } from 'process';
+import * as got from 'got';
 
 export type ResponseHeaders = http.IncomingHttpHeaders;
 export type RequestHeaders = http.OutgoingHttpHeaders;

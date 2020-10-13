@@ -3,6 +3,7 @@
         "vscode": "^1.46.0"
     },
     "devDependencies": {
+        "@types/vscode": "^1.49.0",
         "@types/got": "^9.6.11"
     },
     "dependencies": {
