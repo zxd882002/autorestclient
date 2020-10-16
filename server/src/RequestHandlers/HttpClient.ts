@@ -1,6 +1,6 @@
 import * as got from 'got';
-import {HttpRequest, RequestHeaders} from './HttpRequest'
-import {HttpResponse, ResponseHeaders} from './HttpResponse'
+import {HttpRequest, RequestHeaders} from '../Contracts/HttpRequest'
+import {HttpResponse, ResponseHeaders} from '../Contracts/HttpResponse'
 
 export const LineSplitterRegex: RegExp = /\r?\n/g;
 export const RequestLine: RegExp = /^(?:(?<method>get|post|put|delete|patch|head|options|connect|trace)\s+)(?<url>.+?)(?:\s+(HTTP)\/(\d+.\d+))?$/i;

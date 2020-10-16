@@ -59,8 +59,7 @@ connection.onNotification("auto-rest-client.request", async (...lines: string[])
   }
   catch (e) {
     console.log(e);
-  }
-  
+  }  
 })
 
 documents.listen(connection);

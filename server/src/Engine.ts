@@ -1,6 +1,6 @@
-import * as HttpClient from './contract/HttpClient';
-import { HttpRequest } from './contract/HttpRequest';
-import { HttpResponse } from './contract/HttpResponse';
+import * as HttpClient from './RequestHandlers/HttpClient';
+import { HttpRequest } from './Contracts/HttpRequest';
+import { HttpResponse } from './Contracts/HttpResponse';
 
 export class Engine {
 

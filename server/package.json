@@ -1,5 +1,10 @@
 {
+    "devDependencies": {
+        "@types/vscode": "^1.49.0",
+        "@types/got": "^9.6.11"
+    },
     "dependencies": {
+        "got": "^9.6.0",
         "vscode-languageserver": "^6.1.1",
         "vscode-languageserver-textdocument": "^1.0.1"
     }
