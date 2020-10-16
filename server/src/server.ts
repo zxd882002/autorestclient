@@ -4,12 +4,13 @@ import {
   ProposedFeatures,
   InitializeParams,
   TextDocumentSyncKind,
-  CodeLensParams, 
-  CodeLens, 
+  CodeLensParams,
+  CodeLens,
   Range
 } from 'vscode-languageserver';
 
 import { TextDocument } from 'vscode-languageserver-textdocument';
+import { Engine } from './Engine';
 
 let connection = createConnection(ProposedFeatures.all);
 
@@ -44,10 +45,23 @@ connection.onCodeLens((codelensParam: CodeLensParams): CodeLens[] => {
       title: 'Send Request',
       command: 'auto-rest-client.request'
     }
-  };  
+  };
   codeLenses.push(codeLens);
   return codeLenses;
 });
+
+connection.onNotification("auto-rest-client.request", async (...lines: string[]) => {
+  try {
+    console.log("start request: ");
+    let engine:Engine = new Engine();
+    let response : string = await engine.Execute(lines);
+    connection.sendNotification("auto-rest-client.response", response);
+  }
+  catch (e) {
+    console.log(e);
+  }
+  
+})
 
 documents.listen(connection);
 
