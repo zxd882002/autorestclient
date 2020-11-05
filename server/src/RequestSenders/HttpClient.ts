@@ -1,13 +1,7 @@
 import * as got from 'got';
-import { Request, RequestHeaders } from '../OpenContracts/Request';
-import { Response, ResponseHeaders } from '../OpenContracts/Response';
-
-export const LineSplitterRegex: RegExp = /\r?\n/g;
-export const RequestLine: RegExp = /^(?:(?<method>get|post|put|delete|patch|head|options|connect|trace)\s+)(?<url>.+?)(?:\s+(HTTP)\/(\d+.\d+))?$/i;
-export const HeaderLine: RegExp = /^(?<headerName>[\w\-]+)\s*(\:)\s*(?<headerValue>.*?)\s*$/;
-export const BodyStart: RegExp = /^\s*{\s*$/;	
-export const ScriptStart: RegExp = /^\s*@{\s*$/;
-export const End: RegExp = /^\s*}\s*$/;
+import { BodyScriptEnd, BodyStart, HeaderLine, RequestLine, ScriptStart } from '../GrammarAnalyzers/HttpGrammarAnalyzer';
+import {Request, RequestHeaders} from '../OpenContracts/Request'
+import {Response, ResponseHeaders} from '../OpenContracts/Response'
 
 export function convertToHttpRequest(lines: string[]): Request {
 	let method: string = "";
@@ -59,7 +53,7 @@ export function convertToHttpRequest(lines: string[]): Request {
 			body += line;
 		}		
 
-		const isMatchEnd: boolean = End.test(line);
+		const isMatchEnd: boolean = BodyScriptEnd.test(line);
 		if (isMatchEnd) {
 			collectBody = false;
 			collectBeforeScript = false;

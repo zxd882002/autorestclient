@@ -1,16 +1,55 @@
-import * as HttpClient from './RequestHandlers/HttpClient';
-import { HttpRequest } from './Contracts/HttpRequest';
-import { HttpResponse } from './Contracts/HttpResponse';
+import EnvironmentConfigure from './EnvironmentConfigures/EnvironmentConfigure';
+import GrammarAnalyzerFactory from './GrammarAnalyzers/grammarAnalyzerFactory';
+import GrammarAnalyzer from './GrammarAnalyzers/GrammarAnalyzer';
+import AutoRestClient from './OpenContracts/AutoRestClient';
+import { Range, TextDocument } from 'vscode-languageserver-textdocument';
 
 export class Engine {
 
-    public async Execute(lines: string[]): Promise<string> {
-        let httpRequest: HttpRequest = HttpClient.convertToHttpRequest(lines);
-        HttpClient.executeScript(httpRequest.beforeScript);
-        let response: HttpResponse = await HttpClient.send(httpRequest);
-        console.log(response.body);
-        HttpClient.executeScript(httpRequest.afterScript);
-        let responseText: string = JSON.stringify(response, null, 4);
+    constructor(
+        private environmentConfigure: EnvironmentConfigure,
+        private grammarAnalyzerFactory: GrammarAnalyzerFactory
+    ) { }
+
+    public getRequestRange(document: TextDocument): Range[] {
+        // get grammar
+        let grammarAnalyzer: GrammarAnalyzer = this.grammarAnalyzerFactory.getGrammarAnalyzer(document);
+
+        // get request range
+        return grammarAnalyzer.getRequestRange(document);
+    }
+
+    public async execute(document: TextDocument, range: Range): Promise<string> {
+        // get grammar
+        let grammarAnalyzer: GrammarAnalyzer = this.grammarAnalyzerFactory.getGrammarAnalyzer(document);
+
+        // get environment
+        let environmentName: string | undefined = grammarAnalyzer.getEnvironmentString(document, range);
+        this.environmentConfigure.initializeEnvironment(environmentName);
+        let configureValue = this.environmentConfigure.getEnvironmentValue("host");
+        this.environmentConfigure.setEnvironmentValue("host", configureValue+"?");
+        this.environmentConfigure.setEnvironmentValue("host1", configureValue+"?");        
+        this.environmentConfigure.setEnvironmentValue("host2", configureValue+"?", "dev");
+
+        // initialize autoRestClient object
+        let autoRestClient: AutoRestClient = new AutoRestClient(this.environmentConfigure);
+
+        // convert Requests
+        autoRestClient.requests = grammarAnalyzer.convertToRequests(document, range, this.environmentConfigure);
+
+        // // execute Requests
+        // autoRestClient.requests?.execute();
+        // let responseText: string = autoRestClient.requests?.getResponses() ?? "";
+
+        let responseText = "";
         return responseText;
+
+
+        // let httpRequest: HttpRequest = HttpClient.convertToHttpRequest(lines);
+        // HttpClient.executeScript(httpRequest.beforeScript);
+        // let response: HttpResponse = await HttpClient.send(httpRequest);
+        // console.log(response.body);
+        // HttpClient.executeScript(httpRequest.afterScript);
+        // let responseText: string = JSON.stringify(response, null, 4);
     }
 }

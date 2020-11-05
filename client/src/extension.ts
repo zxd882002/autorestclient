@@ -4,6 +4,7 @@ import * as path from 'path';
 import {
 	LanguageClient,
 	LanguageClientOptions,
+	Range,
 	ServerOptions,
 	TransportKind
 } from 'vscode-languageclient';
@@ -11,23 +12,23 @@ import {
 let client: LanguageClient;
 
 export function activate(context: vscode.ExtensionContext) {
-	connectServiceLanguageProtocol(context);	
-	context.subscriptions.push(vscode.commands.registerCommand("auto-rest-client.request", (lines: string[]) => {		
-		client.sendNotification("auto-rest-client.request", lines);	
+	connectServiceLanguageProtocol(context);
+	context.subscriptions.push(vscode.commands.registerCommand("auto-rest-client.request", (range: Range) => {
+		client.sendNotification("auto-rest-client.request", range);
 		client.onNotification("auto-rest-client.response", (response) => {
-			displayOnWebView(response, context);		
-		});	
+			displayOnWebView(response, context);
+		});
 	}));
 }
 
-async function displayOnWebView(response: string, context: vscode.ExtensionContext): Promise<void>{
+async function displayOnWebView(response: string, context: vscode.ExtensionContext): Promise<void> {
 	try {
 		let responseDocument: vscode.TextDocument = await vscode.workspace.openTextDocument(
-			{ 
-				language: 'json', 
-				content: response 
+			{
+				language: 'json',
+				content: response
 			});
-		await vscode.window.showTextDocument(responseDocument)		
+		await vscode.window.showTextDocument(responseDocument)
 	} catch (reason) {
 		vscode.window.showErrorMessage(reason);
 	}

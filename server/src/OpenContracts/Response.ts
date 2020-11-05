@@ -5,7 +5,7 @@ export type ResponseHeaders = http.IncomingHttpHeaders;
 export type Nullable<T> = {
 	[P in keyof T]: T[P] | null;
 };
-export class HttpResponse {
+export class Response {
 	public constructor(
 		public statusCode: number,
 		public statusMessage: string,
