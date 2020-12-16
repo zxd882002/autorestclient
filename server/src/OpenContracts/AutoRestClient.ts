@@ -1,12 +1,9 @@
 import EnvironmentConfigure from "../EnvironmentConfigures/EnvironmentConfigure";
-import { RequestCollection } from "./RequestCollection";
+import RequestCollection from "./RequestCollection";
 
 export default class AutoRestClient{
-    requests: RequestCollection | undefined;
-    environment:EnvironmentConfigure;
+    public requests?: RequestCollection;
 
-    constructor(environment:EnvironmentConfigure){
-        this.requests = undefined; 
-        this.environment = environment;
+    constructor(public environment:EnvironmentConfigure){
     }
 }

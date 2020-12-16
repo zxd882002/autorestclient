@@ -2,6 +2,7 @@ import * as http from 'http';
 export type RequestHeaders = http.OutgoingHttpHeaders;
 export class Request {
 	public constructor(
+		public name: string,
 		public method: string,
 		public url: string,
 		public headers: RequestHeaders,

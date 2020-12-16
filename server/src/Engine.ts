@@ -20,16 +20,12 @@ export class Engine {
     }
 
     public async execute(document: TextDocument, range: Range): Promise<string> {
-        // get grammar
+        // get grammar analyzer
         let grammarAnalyzer: GrammarAnalyzer = this.grammarAnalyzerFactory.getGrammarAnalyzer(document);
 
         // get environment
         let environmentName: string | undefined = grammarAnalyzer.getEnvironmentString(document, range);
         this.environmentConfigure.initializeEnvironment(environmentName);
-        let configureValue = this.environmentConfigure.getEnvironmentValue("host");
-        this.environmentConfigure.setEnvironmentValue("host", configureValue+"?");
-        this.environmentConfigure.setEnvironmentValue("host1", configureValue+"?");        
-        this.environmentConfigure.setEnvironmentValue("host2", configureValue+"?", "dev");
 
         // initialize autoRestClient object
         let autoRestClient: AutoRestClient = new AutoRestClient(this.environmentConfigure);

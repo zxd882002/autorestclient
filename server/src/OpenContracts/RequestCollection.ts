@@ -1,6 +1,6 @@
 import { Request } from "./Request";
 
-export class RequestCollection{
+export default class RequestCollection{
     
     constructor(private requests : {[name:string]:Request}){ }
 

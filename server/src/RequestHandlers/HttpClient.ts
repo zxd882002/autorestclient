@@ -1,4 +1,5 @@
 import * as got from 'got';
+import { Dictionary } from '../OpenContracts/Dictionary';
 import { Request, RequestHeaders } from '../OpenContracts/Request';
 import { Response, ResponseHeaders } from '../OpenContracts/Response';
 
@@ -77,7 +78,7 @@ export function convertToHttpRequest(lines: string[]): Request {
 		}
 	});
 
-	return new Request(method, url, headers, body, beforeScript, afterScript);
+	return new Request("test", method, url, headers, body, beforeScript, afterScript);
 }
 
 export class AutoRestClient{
@@ -129,8 +130,8 @@ export async function send(httpRequest: Request): Promise<Response> {
 }
 
 export function normalizeHeaderNames<T extends RequestHeaders | ResponseHeaders>(headers: T, rawHeaders: string[]): T {
-	const headersDic: { [key: string]: string } = rawHeaders.reduce(
-		(prev: { [key: string]: string }, cur: string) => {
+	const headersDic: Dictionary<string,string> = rawHeaders.reduce(
+		(prev: Dictionary<string,string>, cur: string) => {
 			prev[cur.toLowerCase()] = cur;
 			return prev;
 		}, {});

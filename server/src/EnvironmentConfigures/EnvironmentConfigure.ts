@@ -1,13 +1,14 @@
 import * as fs from 'fs';
 import { URI } from 'vscode-uri';
 import EnvironmentConfigureItem from './EnvironmentConfigureItem';
+import { Dictionary } from '../OpenContracts/Dictionary';
 
 export const EnvironmentFilePrefix = 'environment';
 export const EnvironmentFileSurfix = 'json';
 export const SharedFileName = `${EnvironmentFilePrefix}.${EnvironmentFileSurfix}`;
 
 export default class EnvironmentConfigure {
-    private environmentConfigures: { [key: string]: EnvironmentConfigureItem };
+    private environmentConfigures: Dictionary<string, EnvironmentConfigureItem>;
     private workspaceFolder: string;
 
     public constructor(workspaceFolder: string) {
@@ -46,7 +47,7 @@ export default class EnvironmentConfigure {
         }
 
         // convert json
-        let environmentObject: { [key: string]: string } = {};
+        let environmentObject: Dictionary<string, string> = {};
         for (let key in this.environmentConfigures) {
             if (this.environmentConfigures[key].congigureFileName === saveFile) {
                 environmentObject[key] = this.environmentConfigures[key].configureValue;

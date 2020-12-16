@@ -1,7 +1,8 @@
 import * as got from 'got';
-import { BodyScriptEnd, BodyStart, HeaderLine, RequestLine, ScriptStart } from '../GrammarAnalyzers/HttpGrammarAnalyzer';
-import {Request, RequestHeaders} from '../OpenContracts/Request'
-import {Response, ResponseHeaders} from '../OpenContracts/Response'
+import { BodyScriptEndRegex, BodyStartRegex, HeaderLineRegex, RequestLineRegex, ScriptStartRegex } from '../GrammarAnalyzers/HttpGrammarAnalyzer';
+import { Request, RequestHeaders } from '../OpenContracts/Request'
+import { Response, ResponseHeaders } from '../OpenContracts/Response'
+import { Dictionary } from '../OpenContracts/Dictionary';
 
 export function convertToHttpRequest(lines: string[]): Request {
 	let method: string = "";
@@ -11,13 +12,13 @@ export function convertToHttpRequest(lines: string[]): Request {
 	let beforeScript: string = "";
 	let afterScript: string = "";
 
-	let scriptPosition:string = "before"; // before, after
+	let scriptPosition: string = "before"; // before, after
 	let collectBody: boolean = false;
 	let collectBeforeScript: boolean = false;
 	let collectAfterScript: boolean = false;
 	console.log(lines);
 	lines.forEach(line => {
-		const isMatchRequestLine: RegExpMatchArray | null = line.match(RequestLine);
+		const isMatchRequestLine: RegExpMatchArray | null = line.match(RequestLineRegex);
 		if (isMatchRequestLine !== null && isMatchRequestLine.groups) {
 			method = isMatchRequestLine.groups["method"];
 			url = isMatchRequestLine.groups["url"];
@@ -25,7 +26,7 @@ export function convertToHttpRequest(lines: string[]): Request {
 			return;
 		}
 
-		const isMatchHeaderLine: RegExpMatchArray | null = line.match(HeaderLine);
+		const isMatchHeaderLine: RegExpMatchArray | null = line.match(HeaderLineRegex);
 		if (isMatchHeaderLine !== null && isMatchHeaderLine.groups) {
 			let fieldName: string = isMatchHeaderLine.groups["headerName"];
 			let fieldValue: string = isMatchHeaderLine.groups["headerValue"];
@@ -33,17 +34,17 @@ export function convertToHttpRequest(lines: string[]): Request {
 			return;
 		}
 
-		const isMatchBodyStart: boolean = BodyStart.test(line);
+		const isMatchBodyStart: boolean = BodyStartRegex.test(line);
 		if (isMatchBodyStart) {
 			collectBody = true;
 		}
 
-		const isMatchScriptStart: boolean = ScriptStart.test(line);
+		const isMatchScriptStart: boolean = ScriptStartRegex.test(line);
 		if (isMatchScriptStart) {
-			if(scriptPosition === "before"){
-				collectBeforeScript= true;
+			if (scriptPosition === "before") {
+				collectBeforeScript = true;
 			} else {
-				collectAfterScript= true;
+				collectAfterScript = true;
 			}
 
 			return;
@@ -51,42 +52,41 @@ export function convertToHttpRequest(lines: string[]): Request {
 
 		if (collectBody) {
 			body += line;
-		}		
+		}
 
-		const isMatchEnd: boolean = BodyScriptEnd.test(line);
+		const isMatchEnd: boolean = BodyScriptEndRegex.test(line);
 		if (isMatchEnd) {
 			collectBody = false;
 			collectBeforeScript = false;
 			collectAfterScript = false;
 		}
 
-		if (collectBeforeScript){
+		if (collectBeforeScript) {
 			beforeScript += line;
 			beforeScript += "\r\n";
 		}
 
-		if (collectAfterScript){
+		if (collectAfterScript) {
 			afterScript += line;
 			beforeScript += "\r\n";
 		}
 	});
 
-	return new Request(method, url, headers, body, beforeScript, afterScript);
+	return new Request("", method, url, headers, body, beforeScript, afterScript);
 }
 
-export class AutoRestClient{
+export class AutoRestClient {
 
-	public SetEnvironmentVariable(name:string, value:string)
-	{
+	public SetEnvironmentVariable(name: string, value: string) {
 		console.log(`call AutoRestClient SetEnvironmentVariable() method, name = ${name}, value=${value}`)
 	}
-	
+
 	public Show() {
 		console.log("call AutoRestClient Show() method")
 	}
 }
 
-export function executeScript(script: string): void{
+export function executeScript(script: string): void {
 	console.log(`execute script: ${script}`);
 	eval(script);
 }
@@ -123,8 +123,8 @@ export async function send(httpRequest: Request): Promise<Response> {
 }
 
 export function normalizeHeaderNames<T extends RequestHeaders | ResponseHeaders>(headers: T, rawHeaders: string[]): T {
-	const headersDic: { [key: string]: string } = rawHeaders.reduce(
-		(prev: { [key: string]: string }, cur: string) => {
+	const headersDic: Dictionary<string, string> = rawHeaders.reduce(
+		(prev: Dictionary<string, string>, cur: string) => {
 			prev[cur.toLowerCase()] = cur;
 			return prev;
 		}, {});
