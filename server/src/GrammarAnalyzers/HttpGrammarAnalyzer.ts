@@ -1,7 +1,7 @@
 import { Range, TextDocument } from "vscode-languageserver-textdocument";
 import EnvironmentConfigure from "../EnvironmentConfigures/EnvironmentConfigure";
 import { Request, RequestHeaders } from "../OpenContracts/Request";
-import RequestCollection from "../OpenContracts/RequestCollection";
+import RequestResponseCollection from "../OpenContracts/RequestResponseCollection";
 import GrammarAnalyzer from "./GrammarAnalyzer";
 
 export const LineSplitterRegex = /\r?\n/;
@@ -68,7 +68,7 @@ export default class HttpGrammarAnalyzer implements GrammarAnalyzer {
         return ranges;
     }
 
-    convertToRequests(document: TextDocument, range: Range, environmentConfigure: EnvironmentConfigure): RequestCollection {
+    convertToRequests(document: TextDocument, range: Range, environmentConfigure: EnvironmentConfigure): RequestResponseCollection {
         // if the range doesn't cover the whole request, need to expand the request line
         let lines: string[] = this.expandRequestLines(document, range);
         let requests: { [requestName: string]: Request } = {};
@@ -87,8 +87,8 @@ export default class HttpGrammarAnalyzer implements GrammarAnalyzer {
             }
         }
 
-        let requestCollection: RequestCollection = new RequestCollection(requests);
-        return requestCollection;
+        let requestResponseCollection: RequestResponseCollection = new RequestResponseCollection(requests);
+        return requestResponseCollection;
     }
 
     getEnvironmentString(document: TextDocument, range: Range): string | undefined {

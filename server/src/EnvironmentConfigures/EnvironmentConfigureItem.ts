@@ -1,7 +1,7 @@
-export default class EnvironmentConfigureItem{
+export default class EnvironmentConfigureItem {
     constructor(
-        public configureName:string,
-        public configureValue:string,
-        public congigureFileName:string
-    ){}    
+        public configureName: string,
+        public configureValue: string,
+        public congigureFileName?: string
+    ) { }
 }

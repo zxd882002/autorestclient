@@ -6,7 +6,7 @@ import { Response, ResponseHeaders } from '../OpenContracts/Response';
 export const LineSplitterRegex: RegExp = /\r?\n/g;
 export const RequestLine: RegExp = /^(?:(?<method>get|post|put|delete|patch|head|options|connect|trace)\s+)(?<url>.+?)(?:\s+(HTTP)\/(\d+.\d+))?$/i;
 export const HeaderLine: RegExp = /^(?<headerName>[\w\-]+)\s*(\:)\s*(?<headerValue>.*?)\s*$/;
-export const BodyStart: RegExp = /^\s*{\s*$/;	
+export const BodyStart: RegExp = /^\s*{\s*$/;
 export const ScriptStart: RegExp = /^\s*@{\s*$/;
 export const End: RegExp = /^\s*}\s*$/;
 
@@ -18,7 +18,7 @@ export function convertToHttpRequest(lines: string[]): Request {
 	let beforeScript: string = "";
 	let afterScript: string = "";
 
-	let scriptPosition:string = "before"; // before, after
+	let scriptPosition: string = "before"; // before, after
 	let collectBody: boolean = false;
 	let collectBeforeScript: boolean = false;
 	let collectAfterScript: boolean = false;
@@ -47,10 +47,10 @@ export function convertToHttpRequest(lines: string[]): Request {
 
 		const isMatchScriptStart: boolean = ScriptStart.test(line);
 		if (isMatchScriptStart) {
-			if(scriptPosition === "before"){
-				collectBeforeScript= true;
+			if (scriptPosition === "before") {
+				collectBeforeScript = true;
 			} else {
-				collectAfterScript= true;
+				collectAfterScript = true;
 			}
 
 			return;
@@ -58,7 +58,7 @@ export function convertToHttpRequest(lines: string[]): Request {
 
 		if (collectBody) {
 			body += line;
-		}		
+		}
 
 		const isMatchEnd: boolean = End.test(line);
 		if (isMatchEnd) {
@@ -67,12 +67,12 @@ export function convertToHttpRequest(lines: string[]): Request {
 			collectAfterScript = false;
 		}
 
-		if (collectBeforeScript){
+		if (collectBeforeScript) {
 			beforeScript += line;
 			beforeScript += "\r\n";
 		}
 
-		if (collectAfterScript){
+		if (collectAfterScript) {
 			afterScript += line;
 			beforeScript += "\r\n";
 		}
@@ -81,19 +81,18 @@ export function convertToHttpRequest(lines: string[]): Request {
 	return new Request("test", method, url, headers, body, beforeScript, afterScript);
 }
 
-export class AutoRestClient{
+export class AutoRestClient {
 
-	public SetEnvironmentVariable(name:string, value:string)
-	{
+	public SetEnvironmentVariable(name: string, value: string) {
 		console.log(`call AutoRestClient SetEnvironmentVariable() method, name = ${name}, value=${value}`)
 	}
-	
+
 	public Show() {
 		console.log("call AutoRestClient Show() method")
 	}
 }
 
-export function executeScript(script: string): void{
+export function executeScript(script: string): void {
 	console.log(`execute script: ${script}`);
 	eval(script);
 }
@@ -122,16 +121,16 @@ export async function send(httpRequest: Request): Promise<Response> {
 
 	return new Response(
 		response.statusCode,
+		bodyString,
 		response.statusMessage,
 		response.httpVersion,
 		responseHeaders,
-		bodyString,
 		response.timings.phases);
 }
 
 export function normalizeHeaderNames<T extends RequestHeaders | ResponseHeaders>(headers: T, rawHeaders: string[]): T {
-	const headersDic: Dictionary<string,string> = rawHeaders.reduce(
-		(prev: Dictionary<string,string>, cur: string) => {
+	const headersDic: Dictionary<string, string> = rawHeaders.reduce(
+		(prev: Dictionary<string, string>, cur: string) => {
 			prev[cur.toLowerCase()] = cur;
 			return prev;
 		}, {});

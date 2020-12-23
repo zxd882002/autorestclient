@@ -1,9 +1,6 @@
 import EnvironmentConfigure from "../EnvironmentConfigures/EnvironmentConfigure";
-import RequestCollection from "./RequestCollection";
+import RequestResponseCollection from "./RequestResponseCollection";
 
-export default class AutoRestClient{
-    public requests?: RequestCollection;
-
-    constructor(public environment:EnvironmentConfigure){
-    }
+export default class AutoRestClient {
+    constructor(public environment: EnvironmentConfigure, public requests: RequestResponseCollection) { }
 }

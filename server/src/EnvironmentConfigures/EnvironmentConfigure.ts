@@ -16,49 +16,30 @@ export default class EnvironmentConfigure {
         this.environmentConfigures = {};
     }
 
-    public initializeEnvironment(environmentName: string | undefined,) {
+    public initializeEnvironment(environmentName: string | undefined) {
         // get environment from environemt.json        
         let sharedUrl: URI = URI.parse(`${this.workspaceFolder}/${SharedFileName}`);
         const sharedContent = fs.readFileSync(sharedUrl.fsPath, 'utf8');
-        this.saveEnvironment(sharedContent, `${SharedFileName}`);
+        this.extractEnvironment(sharedContent, SharedFileName);
 
         // override environment
         if (environmentName !== undefined) {
             environmentName = environmentName.toLocaleLowerCase();
-            let environmentUrl: URI = URI.parse(`${this.workspaceFolder}/${EnvironmentFilePrefix}.${environmentName}.${EnvironmentFileSurfix}`);
+            let environmentFileName = `${EnvironmentFilePrefix}.${environmentName}.${EnvironmentFileSurfix}`;
+            let environmentUrl: URI = URI.parse(`${this.workspaceFolder}/${environmentFileName}`);
             const environmentContent = fs.readFileSync(environmentUrl.fsPath, 'utf8');
-            this.saveEnvironment(environmentContent, `${EnvironmentFilePrefix}.${environmentName}.${EnvironmentFileSurfix}`);
+            this.extractEnvironment(environmentContent, environmentFileName);
         }
     }
 
-    public setEnvironmentValue(environmentKeyName: string, environmentValue: string, environmentName?: string) {
-        let saveFile: string;
-
-        // save on memory
+    public setEnvironmentValue(environmentKeyName: string, environmentValue: string) {
         if (this.environmentConfigures[environmentKeyName] === undefined) {
-            saveFile = environmentName === undefined ? `${SharedFileName}` : `${EnvironmentFilePrefix}.${environmentName.toLocaleLowerCase()}.${EnvironmentFileSurfix}`;
-            let configureItem: EnvironmentConfigureItem = new EnvironmentConfigureItem(environmentKeyName, environmentValue, saveFile);
+            let configureItem: EnvironmentConfigureItem = new EnvironmentConfigureItem(environmentKeyName, environmentValue, undefined);
             this.environmentConfigures[environmentKeyName] = configureItem;
         }
         else {
-            let configureItem: EnvironmentConfigureItem = this.environmentConfigures[environmentKeyName];
             this.environmentConfigures[environmentKeyName].configureValue = environmentValue;
-            saveFile = `${configureItem.congigureFileName}`;
         }
-
-        // convert json
-        let environmentObject: Dictionary<string, string> = {};
-        for (let key in this.environmentConfigures) {
-            if (this.environmentConfigures[key].congigureFileName === saveFile) {
-                environmentObject[key] = this.environmentConfigures[key].configureValue;
-            }
-        }
-        let environmentData: string = JSON.stringify(environmentObject, null, 4);
-
-        // save it
-        let fileUri: URI = URI.parse(`${this.workspaceFolder}/${saveFile}`);
-        console.log(`save file to ${fileUri.fsPath}, data ${environmentData}`);
-        fs.writeFileSync(fileUri.fsPath, environmentData);
     }
 
     public getEnvironmentValue(environmentKeyName: string): string | undefined {
@@ -68,7 +49,31 @@ export default class EnvironmentConfigure {
         return undefined;
     }
 
-    private saveEnvironment(content: string, path: string) {
+    public saveEnvironment() {
+        // group environmentConfigureItem by file path
+        let environmentFileNameEnvironmentKeyValueDictionary: Dictionary<string, Dictionary<string, string>> = {};
+        for (let key in this.environmentConfigures) {
+            if (this.environmentConfigures[key].congigureFileName !== undefined) {
+                let environmentConfigureItem = this.environmentConfigures[key];
+                let fileName: string = environmentConfigureItem.congigureFileName as string;
+                let configureKey: string = environmentConfigureItem.configureName;
+                let configureValue: string = environmentConfigureItem.configureValue;
+                environmentFileNameEnvironmentKeyValueDictionary[fileName][configureKey] = configureValue;
+            }
+        }
+
+        for (let filePath in environmentFileNameEnvironmentKeyValueDictionary) {
+            // convert json
+            let environmentJson: string = JSON.stringify(environmentFileNameEnvironmentKeyValueDictionary[filePath], null, 4);
+
+            // save it
+            let fileUri: URI = URI.parse(`${this.workspaceFolder}/${filePath}`);
+            console.log(`save file to ${fileUri.fsPath}, data ${environmentJson}`);
+            fs.writeFileSync(fileUri.fsPath, environmentJson);
+        }
+    }
+
+    private extractEnvironment(content: string, path: string) {
         let configureJson = JSON.parse(content);
         for (const key in configureJson) {
             const value = configureJson[key];
