@@ -1,7 +1,7 @@
 import * as got from 'got';
 import { Dictionary } from '../OpenContracts/Dictionary';
-import { Request, RequestHeaders } from '../OpenContracts/Request';
-import { Response, ResponseHeaders } from '../OpenContracts/Response';
+import Request, { RequestHeaders } from '../OpenContracts/Request';
+import Response, { ResponseHeaders } from '../OpenContracts/Response';
 
 export const LineSplitterRegex: RegExp = /\r?\n/g;
 export const RequestLine: RegExp = /^(?:(?<method>get|post|put|delete|patch|head|options|connect|trace)\s+)(?<url>.+?)(?:\s+(HTTP)\/(\d+.\d+))?$/i;

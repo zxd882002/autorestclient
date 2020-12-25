@@ -1,7 +1,9 @@
 import { Range, TextDocument } from "vscode-languageserver-textdocument";
 import EnvironmentConfigure from "../EnvironmentConfigures/EnvironmentConfigure";
-import { Request, RequestHeaders } from "../OpenContracts/Request";
+import Request, { RequestHeaders } from "../OpenContracts/Request";
 import RequestResponseCollection from "../OpenContracts/RequestResponseCollection";
+import HttpRequestSender from "../RequestSenders/HttpRequestSender";
+import TypeScriptExecutor from "../ScriptExecutors/TypeScriptExecutor";
 import GrammarAnalyzer from "./GrammarAnalyzer";
 
 export const LineSplitterRegex = /\r?\n/;
@@ -87,7 +89,7 @@ export default class HttpGrammarAnalyzer implements GrammarAnalyzer {
             }
         }
 
-        let requestResponseCollection: RequestResponseCollection = new RequestResponseCollection(requests);
+        let requestResponseCollection: RequestResponseCollection = new RequestResponseCollection(requests, new HttpRequestSender(), new TypeScriptExecutor());
         return requestResponseCollection;
     }
 

@@ -1,6 +1,6 @@
 import * as http from 'http';
 export type RequestHeaders = http.OutgoingHttpHeaders;
-export class Request {
+export default class Request {
 	public constructor(
 		public name: string,
 		public method: string,

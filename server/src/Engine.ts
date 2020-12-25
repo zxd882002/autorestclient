@@ -1,9 +1,9 @@
 import EnvironmentConfigure from './EnvironmentConfigures/EnvironmentConfigure';
 import GrammarAnalyzerFactory from './GrammarAnalyzers/grammarAnalyzerFactory';
 import GrammarAnalyzer from './GrammarAnalyzers/GrammarAnalyzer';
-import AutoRestClient from './OpenContracts/AutoRestClient';
 import { Range, TextDocument } from 'vscode-languageserver-textdocument';
 import RequestResponseCollection from './OpenContracts/RequestResponseCollection';
+import AutoRestClient from './OpenContracts/AutoRestClient';
 
 export class Engine {
 
@@ -35,7 +35,7 @@ export class Engine {
         let autoRestClient = new AutoRestClient(this.environmentConfigure, RequestResponseCollection);
 
         // // execute Requests
-        RequestResponseCollection.execute();
+        await RequestResponseCollection.execute();
         // let responseText: string = autoRestClient.requests?.getResponses() ?? "";
 
         // save the environment

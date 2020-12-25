@@ -58,7 +58,12 @@ export default class EnvironmentConfigure {
                 let fileName: string = environmentConfigureItem.congigureFileName as string;
                 let configureKey: string = environmentConfigureItem.configureName;
                 let configureValue: string = environmentConfigureItem.configureValue;
-                environmentFileNameEnvironmentKeyValueDictionary[fileName][configureKey] = configureValue;
+                let environmentKeyValueDictionary = environmentFileNameEnvironmentKeyValueDictionary[fileName];
+                if (environmentKeyValueDictionary === undefined) {
+                    environmentFileNameEnvironmentKeyValueDictionary[fileName] = {};
+                    environmentKeyValueDictionary = environmentFileNameEnvironmentKeyValueDictionary[fileName];
+                }
+                environmentKeyValueDictionary[configureKey] = configureValue;
             }
         }
 

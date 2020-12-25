@@ -1,10 +1,10 @@
 import * as got from 'got';
-import { Request, RequestHeaders } from '../OpenContracts/Request'
-import { Response, ResponseHeaders } from '../OpenContracts/Response'
+import Request, { RequestHeaders } from '../OpenContracts/Request'
+import Response, { ResponseHeaders } from '../OpenContracts/Response'
 import { Dictionary } from '../OpenContracts/Dictionary';
 import RequestSender from './RequestSender';
 
-export class HttpRequestSender implements RequestSender {
+export default class HttpRequestSender implements RequestSender {
 
 	send = async (httpRequest: Request): Promise<Response> => {
 		let bodySize = 0;
