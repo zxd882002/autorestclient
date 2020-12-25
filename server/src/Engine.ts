@@ -2,54 +2,97 @@ import EnvironmentConfigure from './EnvironmentConfigures/EnvironmentConfigure';
 import GrammarAnalyzerFactory from './GrammarAnalyzers/grammarAnalyzerFactory';
 import GrammarAnalyzer from './GrammarAnalyzers/GrammarAnalyzer';
 import { Range, TextDocument } from 'vscode-languageserver-textdocument';
-import RequestResponseCollection from './OpenContracts/RequestResponseCollection';
-import AutoRestClient from './OpenContracts/AutoRestClient';
+import RequestResponseCollection from './Contracts/RequestResponseCollection';
+import AutoRestClientStaticDecorator from './Contracts/AutoRestClientStaticDecorator';
+import TypeScriptExecutor from './ScriptExecutors/TypeScriptExecutor';
+import RequestSender from './RequestSenders/RequestSender';
+import ScriptExecutor from './ScriptExecutors/ScriptExecutor';
+import HttpRequestSender from './RequestSenders/HttpRequestSender';
+import Response from './Contracts/Response';
 
-export class Engine {
+export default class Engine {
+    private environmentConfigure?: EnvironmentConfigure;
+    private requestResponseCollection?: RequestResponseCollection;
+
+    public get Environment(): EnvironmentConfigure {
+        let environment = this.environmentConfigure;
+        if (environment === undefined)
+            throw new Error("Undefined Environment!");
+        return environment;
+    }
+
+    public get RequestResponseCollection(): RequestResponseCollection {
+        let requestResponseCollection = this.requestResponseCollection;
+        if (requestResponseCollection === undefined)
+            throw new Error("Undefined RequestResponseCollection");
+        return requestResponseCollection;
+    }
 
     constructor(
-        private environmentConfigure: EnvironmentConfigure,
-        private grammarAnalyzerFactory: GrammarAnalyzerFactory
-    ) { }
+        private workSpaceFolder: string
+    ) {
+        this.requestResponseCollection = undefined;
+        AutoRestClientStaticDecorator.engine = this;
+    }
+
+    private initializeEngine(document: TextDocument): [GrammarAnalyzer, EnvironmentConfigure, ScriptExecutor, RequestSender] {
+        // get grammarAnalyzer
+        let grammarAnalyzer = new GrammarAnalyzerFactory().getGrammarAnalyzer(document);
+
+        // get environment
+        this.environmentConfigure = new EnvironmentConfigure();
+        let environmentName: string | undefined = grammarAnalyzer.getEnvironmentString(document);
+        this.environmentConfigure.initializeEnvironment(this.workSpaceFolder, environmentName);
+
+        // get executor
+        let executor = new TypeScriptExecutor();
+
+        // get sender
+        let sender = new HttpRequestSender();
+
+        return [grammarAnalyzer, this.environmentConfigure, executor, sender];
+    }
 
     public getRequestRange(document: TextDocument): Range[] {
-        // get grammar
-        let grammarAnalyzer: GrammarAnalyzer = this.grammarAnalyzerFactory.getGrammarAnalyzer(document);
-
-        // get request range
+        let [grammarAnalyzer] = this.initializeEngine(document);
         return grammarAnalyzer.getRequestRange(document);
     }
 
     public async execute(document: TextDocument, range: Range): Promise<string> {
-        // get grammar analyzer
-        let grammarAnalyzer: GrammarAnalyzer = this.grammarAnalyzerFactory.getGrammarAnalyzer(document);
-
-        // get environment
-        let environmentName: string | undefined = grammarAnalyzer.getEnvironmentString(document, range);
-        this.environmentConfigure.initializeEnvironment(environmentName);
+        let [grammarAnalyzer, environmentConfigure, scriptExecutor, requestSender] = this.initializeEngine(document);
 
         // convert Requests
-        let RequestResponseCollection: RequestResponseCollection = grammarAnalyzer.convertToRequests(document, range, this.environmentConfigure);
+        this.requestResponseCollection = grammarAnalyzer.convertToRequests(document, range, environmentConfigure);
 
-        // initialize autoRestClient object
-        let autoRestClient = new AutoRestClient(this.environmentConfigure, RequestResponseCollection);
+        // execute
+        for (const name in this.requestResponseCollection.Requests) {
+            let currentRequest = this.requestResponseCollection.Requests[name];
+            this.requestResponseCollection.CurrentRequest = currentRequest;
 
-        // // execute Requests
-        await RequestResponseCollection.execute();
-        // let responseText: string = autoRestClient.requests?.getResponses() ?? "";
+            try {
+                scriptExecutor.executeScript(currentRequest.beforeScript);
+
+                // send request
+                let currentResponse = await requestSender.send(currentRequest);
+                this.requestResponseCollection.CurrentResponse = currentResponse;
+                this.requestResponseCollection.Responses[name] = currentResponse;
+
+                // execute after script
+                scriptExecutor.executeScript(currentRequest.afterScript);
+            }
+            catch (error) {
+                let currentResponse = new Response(500, error);
+                this.requestResponseCollection.CurrentResponse = currentResponse;
+                this.requestResponseCollection.Responses[name] = currentResponse;
+                break;
+            }
+        }
 
         // save the environment
-        this.environmentConfigure.saveEnvironment();
+        environmentConfigure.saveEnvironment();
 
-        let responseText = "";
+        // get response
+        let responseText = this.requestResponseCollection.getResponseSummary();
         return responseText;
-
-
-        // let httpRequest: HttpRequest = HttpClient.convertToHttpRequest(lines);
-        // HttpClient.executeScript(httpRequest.beforeScript);
-        // let response: HttpResponse = await HttpClient.send(httpRequest);
-        // console.log(response.body);
-        // HttpClient.executeScript(httpRequest.afterScript);
-        // let responseText: string = JSON.stringify(response, null, 4);
     }
 }

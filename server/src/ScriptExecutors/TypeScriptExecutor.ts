@@ -1,5 +1,5 @@
 import ScriptExecutor from "./ScriptExecutor";
-import AutoRestClientStaticDecorator from "../OpenContracts/AutoRestClientStaticDecorator"
+import AutoRestClientStaticDecorator from "../Contracts/AutoRestClientStaticDecorator"
 
 class AutoRestClient {
     public static get Response() {

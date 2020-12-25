@@ -7,12 +7,11 @@ import {
   CodeLensParams,
   CodeLens,
   Range,
-  WorkspaceFolder,
-  DocumentColorOptions
+  WorkspaceFolder
 } from 'vscode-languageserver';
 
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { Engine } from './Engine';
+import Engine from './Engine';
 import EnvironmentConfigure from './EnvironmentConfigures/EnvironmentConfigure';
 import GrammarAnalyzerFactory from './GrammarAnalyzers/grammarAnalyzerFactory';
 
@@ -29,10 +28,7 @@ connection.onInitialize((params: InitializeParams) => {
     throw new Error("workSpaceFolders is null");
   }
 
-  engine = new Engine(
-    new EnvironmentConfigure(workspaceFolders[0].uri),
-    new GrammarAnalyzerFactory()
-  ); // todo will be use container
+  engine = new Engine(workspaceFolders[0].uri);
 
   return {
     capabilities: {

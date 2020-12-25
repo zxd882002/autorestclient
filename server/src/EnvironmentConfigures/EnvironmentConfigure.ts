@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import { URI } from 'vscode-uri';
 import EnvironmentConfigureItem from './EnvironmentConfigureItem';
-import { Dictionary } from '../OpenContracts/Dictionary';
+import { Dictionary } from '../Contracts/Dictionary';
 
 export const EnvironmentFilePrefix = 'environment';
 export const EnvironmentFileSurfix = 'json';
@@ -11,14 +11,16 @@ export default class EnvironmentConfigure {
     private environmentConfigures: Dictionary<string, EnvironmentConfigureItem>;
     private workspaceFolder: string;
 
-    public constructor(workspaceFolder: string) {
-        this.workspaceFolder = workspaceFolder;
+    public constructor() {
         this.environmentConfigures = {};
+        this.workspaceFolder = "";
     }
 
-    public initializeEnvironment(environmentName: string | undefined) {
+    public initializeEnvironment(workspaceFolder: string, environmentName: string | undefined) {
+        this.workspaceFolder = workspaceFolder;
+
         // get environment from environemt.json        
-        let sharedUrl: URI = URI.parse(`${this.workspaceFolder}/${SharedFileName}`);
+        let sharedUrl: URI = URI.parse(`${workspaceFolder}/${SharedFileName}`);
         const sharedContent = fs.readFileSync(sharedUrl.fsPath, 'utf8');
         this.extractEnvironment(sharedContent, SharedFileName);
 
@@ -26,7 +28,7 @@ export default class EnvironmentConfigure {
         if (environmentName !== undefined) {
             environmentName = environmentName.toLocaleLowerCase();
             let environmentFileName = `${EnvironmentFilePrefix}.${environmentName}.${EnvironmentFileSurfix}`;
-            let environmentUrl: URI = URI.parse(`${this.workspaceFolder}/${environmentFileName}`);
+            let environmentUrl: URI = URI.parse(`${workspaceFolder}/${environmentFileName}`);
             const environmentContent = fs.readFileSync(environmentUrl.fsPath, 'utf8');
             this.extractEnvironment(environmentContent, environmentFileName);
         }

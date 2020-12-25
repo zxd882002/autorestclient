@@ -1,7 +1,7 @@
 import * as got from 'got';
-import Request, { RequestHeaders } from '../OpenContracts/Request'
-import Response, { ResponseHeaders } from '../OpenContracts/Response'
-import { Dictionary } from '../OpenContracts/Dictionary';
+import Request, { RequestHeaders } from '../Contracts/Request'
+import Response, { ResponseHeaders } from '../Contracts/Response'
+import { Dictionary } from '../Contracts/Dictionary';
 import RequestSender from './RequestSender';
 
 export default class HttpRequestSender implements RequestSender {

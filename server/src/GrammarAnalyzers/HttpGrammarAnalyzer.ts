@@ -1,9 +1,8 @@
 import { Range, TextDocument } from "vscode-languageserver-textdocument";
 import EnvironmentConfigure from "../EnvironmentConfigures/EnvironmentConfigure";
-import Request, { RequestHeaders } from "../OpenContracts/Request";
-import RequestResponseCollection from "../OpenContracts/RequestResponseCollection";
+import Request, { RequestHeaders } from "../Contracts/Request";
+import RequestResponseCollection from "../Contracts/RequestResponseCollection";
 import HttpRequestSender from "../RequestSenders/HttpRequestSender";
-import TypeScriptExecutor from "../ScriptExecutors/TypeScriptExecutor";
 import GrammarAnalyzer from "./GrammarAnalyzer";
 
 export const LineSplitterRegex = /\r?\n/;
@@ -89,46 +88,28 @@ export default class HttpGrammarAnalyzer implements GrammarAnalyzer {
             }
         }
 
-        let requestResponseCollection: RequestResponseCollection = new RequestResponseCollection(requests, new HttpRequestSender(), new TypeScriptExecutor());
+        let requestResponseCollection: RequestResponseCollection = new RequestResponseCollection(requests);
         return requestResponseCollection;
     }
 
-    getEnvironmentString(document: TextDocument, range: Range): string | undefined {
-        let requestLines: string[] = this.expandRequestLines(document, range);
-        let environmentName: string | undefined = undefined;
-
-        // get the name from range
-        for (let lineNumber: number = 0; lineNumber < requestLines.length; lineNumber++) {
-            let line: string = requestLines[lineNumber];
+    getEnvironmentString(document: TextDocument): string | undefined {
+        let documentLines: string[] = document.getText().split(LineSplitterRegex);
+        for (let lineNumber: number = 0; lineNumber < documentLines.length; lineNumber++) {
+            let line: string = documentLines[lineNumber];
             let match: RegExpMatchArray | null = line.match(RequestEnvironmentRegex);
             if (match && match.groups) {
-                environmentName = match.groups["envName"];
-                console.log(`got the env name from range: ${environmentName}`);
+                let environmentName = match.groups["envName"];
+                console.log(`got the env name from top line: ${environmentName}`);
+                return environmentName.toLocaleLowerCase();
+            }
+            else if (line.match(EmptyLineRegex)) {
+                continue;
+            }
+            else {
                 break;
             }
         }
-
-        // if the environment name is not defined, check the document first line
-        if (environmentName === undefined) {
-            let documentLines: string[] = document.getText().split(LineSplitterRegex);
-            for (let lineNumber: number = 0; lineNumber < documentLines.length; lineNumber++) {
-                let line: string = documentLines[lineNumber];
-                let match: RegExpMatchArray | null = line.match(RequestEnvironmentRegex);
-                if (match && match.groups) {
-                    environmentName = match.groups["envName"];
-                    console.log(`got the env name from top line: ${environmentName}`);
-                    break;
-                }
-                else if (line.match(EmptyLineRegex)) {
-                    continue;
-                }
-                else {
-                    break;
-                }
-            }
-        }
-
-        return environmentName === undefined ? environmentName : environmentName.toLocaleLowerCase();
+        return undefined;
     }
 
     private convertToRequest(lines: string[], environmentConfigure: EnvironmentConfigure): Request {
