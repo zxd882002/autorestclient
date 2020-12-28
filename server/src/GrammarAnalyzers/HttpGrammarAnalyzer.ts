@@ -21,66 +21,49 @@ export default class HttpGrammarAnalyzer implements GrammarAnalyzer {
 
     getRequestRange(document: TextDocument): Range[] {
         let ranges = [];
-
         let lines: string[] = document.getText().split(LineSplitterRegex);
-        let startLine: number = -1;
-        let endLine: number = -1;
-        for (let lineNumber: number = 0; lineNumber < lines.length; lineNumber++) {
-            let line: string = lines[lineNumber];
+        let startLine: number = 0;
+        let endLine: number = 0;
+        while (endLine <= lines.length - 1) {
+            let [start, end] = this.expandRequestLines(lines, startLine, endLine);
 
-            if (startLine === -1) {
-                // search start line
+            let range: Range = {
+                start: { line: start, character: 0 },
+                end: { line: end, character: 0 }
+            };
+            ranges.push(range);
+
+            for (start = end + 1; start <= lines.length - 1; start++) {
+                let line = lines[start];
                 if (this.isStartLine(line)) {
-                    startLine = lineNumber;
+                    startLine = start;
+                    endLine = start;
+                    break;
                 }
             }
-            else if (endLine === -1) {
-                // search end line
-                if (this.isEndLine(line)) {
-                    endLine = lineNumber - 1;
 
-                    let range: Range = {
-                        start: { line: startLine, character: 0 },
-                        end: { line: endLine, character: 0 }
-                    };
-                    console.log(`1: startLine = ${startLine}, endLine = ${endLine}`);
-                    ranges.push(range);
-
-                    startLine = -1;
-                    endLine = -1;
-                }
-            }
+            if (start > lines.length - 1)
+                break;
         }
-
-        // for the last request
-        if (startLine !== -1 && endLine === -1) {
-            endLine = lines.length;
-            if (startLine < endLine) {
-                let range: Range = {
-                    start: { line: startLine, character: 0 },
-                    end: { line: endLine, character: 0 }
-                };
-                console.log(`2: startLine = ${startLine}, endLine = ${endLine}`);
-                ranges.push(range);
-            }
-        }
-
         return ranges;
     }
 
     convertToRequests(document: TextDocument, range: Range, environmentConfigure: EnvironmentConfigure): RequestResponseCollection {
         // if the range doesn't cover the whole request, need to expand the request line
-        let lines: string[] = this.expandRequestLines(document, range);
-        let requests: { [requestName: string]: Request } = {};
+        let lines: string[] = document.getText().split(LineSplitterRegex);
+        let [start, end] = this.expandRequestLines(lines, range.start.line, range.end.line);
+        lines = lines.slice(start, end + 1);
+
 
         // split the requests
+        let requests: { [requestName: string]: Request } = {};
         let startLineNumber = 0;
         let endLineNumber = 0;
         for (let lineNumber = 0; lineNumber < lines.length; lineNumber++) {
             let line: string = lines[lineNumber];
             if (line.match(RequestSplitRegex) || lineNumber == lines.length - 1) {
                 endLineNumber = lineNumber;
-                let requestLines: string[] = lines.splice(startLineNumber, endLineNumber - startLineNumber + 1);
+                let requestLines: string[] = lines.slice(startLineNumber, endLineNumber + 1);
                 let request: Request = this.convertToRequest(requestLines, environmentConfigure);
                 requests[request.name] = request;
                 startLineNumber = lineNumber + 1;
@@ -222,12 +205,8 @@ export default class HttpGrammarAnalyzer implements GrammarAnalyzer {
         return text;
     }
 
-    private expandRequestLines(document: TextDocument, range: Range): string[] {
-        let lines: string[] = document.getText().split(LineSplitterRegex);
-
-
+    private expandRequestLines(lines: string[], startLineNumber: number, endLineNumber: number): [number, number] {
         // find start 
-        let startLineNumber: number = range.start.line;
         let selectedStartLine: string = lines[startLineNumber];
         let foundNearestStartLine: boolean = this.isStartLine(selectedStartLine);
         if (!foundNearestStartLine) {
@@ -256,18 +235,17 @@ export default class HttpGrammarAnalyzer implements GrammarAnalyzer {
                 let startLine: string = lines[tempStartLineNumber];
                 if (this.isStartLine(startLine)) {
                     foundNearestStartLine = true;
-                    startLineNumber = tempStartLineNumber + 1;
+                    startLineNumber = tempStartLineNumber;
                     break;
                 }
             }
         }
 
         if (!foundNearestStartLine) {
-            return [];
+            throw new Error("Not found nearest start line");
         }
 
         // find end
-        let endLineNumber: number = range.end.line;
         let foundNearestEndLine: boolean = false;
         for (let tempEndLineNumber = endLineNumber + 1; tempEndLineNumber < lines.length; tempEndLineNumber++) {
             let endLine: string = lines[tempEndLineNumber];
@@ -286,7 +264,7 @@ export default class HttpGrammarAnalyzer implements GrammarAnalyzer {
         }
 
         console.log(`start = ${startLineNumber}, end = ${endLineNumber}`)
-        return lines.slice(startLineNumber, endLineNumber + 1);
+        return [startLineNumber, endLineNumber];
     }
 
     private isStartLine(line: string): boolean {
