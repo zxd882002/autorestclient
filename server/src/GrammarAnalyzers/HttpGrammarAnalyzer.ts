@@ -80,7 +80,7 @@ export default class HttpGrammarAnalyzer implements GrammarAnalyzer {
             let line: string = lines[lineNumber];
             if (line.match(RequestSplitRegex) || lineNumber == lines.length - 1) {
                 endLineNumber = lineNumber;
-                let requestLines: string[] = lines.splice(startLineNumber, endLineNumber);
+                let requestLines: string[] = lines.splice(startLineNumber, endLineNumber - startLineNumber + 1);
                 let request: Request = this.convertToRequest(requestLines, environmentConfigure);
                 requests[request.name] = request;
                 startLineNumber = lineNumber + 1;
@@ -127,7 +127,10 @@ export default class HttpGrammarAnalyzer implements GrammarAnalyzer {
         let collectBeforeScript: boolean = false;
         let collectAfterScript: boolean = false;
 
+        let braceCount = 0;
+
         lines.forEach(line => {
+
             const isMatchRequestNameLine: RegExpMatchArray | null = line.match(RequestNameRegex)
             if (isMatchRequestNameLine !== null && isMatchRequestNameLine.groups) {
                 name = isMatchRequestNameLine.groups["requestName"];
@@ -166,14 +169,18 @@ export default class HttpGrammarAnalyzer implements GrammarAnalyzer {
             }
 
             if (collectBody) {
+                braceCount += line.match(/\{/g)?.length ?? 0;
+                braceCount -= line.match(/\}/g)?.length ?? 0;
                 body += this.replaceEnvironmentValue(line, environmentConfigure);
             }
 
             const isMatchEnd: boolean = BodyScriptEndRegex.test(line);
-            if (isMatchEnd) {
-                collectBody = false;
-                collectBeforeScript = false;
-                collectAfterScript = false;
+            if (isMatchEnd && collectBody) {
+                if (braceCount == 0) {
+                    collectBody = false;
+                    collectBeforeScript = false;
+                    collectAfterScript = false;
+                }
             }
 
             if (collectBeforeScript) {
