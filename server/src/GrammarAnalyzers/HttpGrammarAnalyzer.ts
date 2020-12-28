@@ -2,7 +2,6 @@ import { Range, TextDocument } from "vscode-languageserver-textdocument";
 import EnvironmentConfigure from "../EnvironmentConfigures/EnvironmentConfigure";
 import Request, { RequestHeaders } from "../Contracts/Request";
 import RequestResponseCollection from "../Contracts/RequestResponseCollection";
-import HttpRequestSender from "../RequestSenders/HttpRequestSender";
 import GrammarAnalyzer from "./GrammarAnalyzer";
 
 export const LineSplitterRegex = /\r?\n/;
@@ -15,7 +14,7 @@ export const EmptyLineRegex = /^\s*$/;
 export const BodyStartRegex = /^\s*{\s*$/;
 export const ScriptStartRegex = /^\s*@{\s*$/;
 export const BodyScriptEndRegex = /^\s*}\s*$/;
-export const PlaceHolderRegexRegex = /{(?<propertyName>\w+?)}/g;
+export const PlaceHolderRegexRegex = /{(?<property>\w+?)}/g;
 export const UrlSplitRegex = /\/(?<content>\w+)/g;
 
 export default class HttpGrammarAnalyzer implements GrammarAnalyzer {
@@ -205,10 +204,11 @@ export default class HttpGrammarAnalyzer implements GrammarAnalyzer {
     private replaceEnvironmentValue(text: string, environmentConfigure: EnvironmentConfigure): string {
         let match = PlaceHolderRegexRegex.exec(text);
         while (match !== null && match.groups !== undefined) {
-            const propertyName = match.groups.propertyName;
-            const value = environmentConfigure.getEnvironmentValue(propertyName);
+            const property = match.groups.property;
+            const [propertyName, parameter] = property.split("|");
+            const value = environmentConfigure.getEnvironmentValue(propertyName, parameter);
             if (value !== undefined) {
-                text = text.replace(`{${propertyName}}`, value);
+                text = text.replace(`{${property}}`, value);
             }
             match = PlaceHolderRegexRegex.exec(text);
         }

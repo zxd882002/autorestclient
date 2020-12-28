@@ -2,6 +2,8 @@ import * as fs from 'fs';
 import { URI } from 'vscode-uri';
 import EnvironmentConfigureItem from './EnvironmentConfigureItem';
 import { Dictionary } from '../Contracts/Dictionary';
+import DateFormator from '../Utils/DateFormator';
+import GuidGenerator from '../Utils/GuidGenerator';
 
 export const EnvironmentFilePrefix = 'environment';
 export const EnvironmentFileSurfix = 'json';
@@ -32,21 +34,23 @@ export default class EnvironmentConfigure {
             const environmentContent = fs.readFileSync(environmentUrl.fsPath, 'utf8');
             this.extractEnvironment(environmentContent, environmentFileName);
         }
+
+        // initialize internal environment value
+        this.extractInternalEnvironment();
     }
 
     public setEnvironmentValue(environmentKeyName: string, environmentValue: string) {
         if (this.environmentConfigures[environmentKeyName] === undefined) {
-            let configureItem: EnvironmentConfigureItem = new EnvironmentConfigureItem(environmentKeyName, environmentValue, undefined);
-            this.environmentConfigures[environmentKeyName] = configureItem;
+            this.extract(environmentKeyName, () => environmentValue);
         }
         else {
-            this.environmentConfigures[environmentKeyName].configureValue = environmentValue;
+            this.environmentConfigures[environmentKeyName].configureValue = () => environmentValue;
         }
     }
 
-    public getEnvironmentValue(environmentKeyName: string): string | undefined {
+    public getEnvironmentValue(environmentKeyName: string, parameter?: string): string | undefined {
         if (this.environmentConfigures[environmentKeyName] !== undefined) {
-            return this.environmentConfigures[environmentKeyName].configureValue;
+            return this.environmentConfigures[environmentKeyName].configureValue(parameter);
         }
         return undefined;
     }
@@ -59,7 +63,7 @@ export default class EnvironmentConfigure {
                 let environmentConfigureItem = this.environmentConfigures[key];
                 let fileName: string = environmentConfigureItem.congigureFileName as string;
                 let configureKey: string = environmentConfigureItem.configureName;
-                let configureValue: string = environmentConfigureItem.configureValue;
+                let configureValue: string = environmentConfigureItem.configureValue();
                 let environmentKeyValueDictionary = environmentFileNameEnvironmentKeyValueDictionary[fileName];
                 if (environmentKeyValueDictionary === undefined) {
                     environmentFileNameEnvironmentKeyValueDictionary[fileName] = {};
@@ -84,8 +88,35 @@ export default class EnvironmentConfigure {
         let configureJson = JSON.parse(content);
         for (const key in configureJson) {
             const value = configureJson[key];
-            let configureItem: EnvironmentConfigureItem = new EnvironmentConfigureItem(key, value, path);
-            this.environmentConfigures[key] = configureItem;
+            this.extract(key, () => value, path);
         }
+    }
+
+    private extractInternalEnvironment() {
+        this.extract("guid", () => {
+            return GuidGenerator.newGuid();
+        });
+
+        this.extract("now", (format?: string) => {
+            return DateFormator.formatDate(new Date(), format);
+        });
+
+        this.extract("random", (format?: string) => {
+            if (format != undefined) {
+                let [min, max] = format.split(',');
+
+                let minNum = Number(min);
+                let maxNum = Number(max);
+                if (minNum < maxNum)
+                    return (Math.floor(Math.random() * (maxNum - minNum)) + minNum).toString();
+                return Math.random().toString();
+            }
+            return Math.random().toString();
+        });
+    }
+
+    private extract(environmentKeyName: string, environmentValue: (parameter?: string) => string, configureFileName?: string) {
+        let configureItem: EnvironmentConfigureItem = new EnvironmentConfigureItem(environmentKeyName, environmentValue, configureFileName);
+        this.environmentConfigures[environmentKeyName] = configureItem;
     }
 }
