@@ -58,6 +58,11 @@ export default class Engine {
         return grammarAnalyzer.getRequestRange(document);
     }
 
+    public getAllRequestRange(document: TextDocument): Range {
+        let [grammarAnalyzer] = this.initializeEngine(document);
+        return grammarAnalyzer.getAllRequestRange(document);
+    }
+
     public async execute(document: TextDocument, range: Range): Promise<string> {
         let [grammarAnalyzer, environmentConfigure, scriptExecutor, requestSender] = this.initializeEngine(document);
 
@@ -81,7 +86,7 @@ export default class Engine {
                 scriptExecutor.executeScript(currentRequest.afterScript);
             }
             catch (error) {
-                let currentResponse = new Response(500, error);
+                let currentResponse = new Response(500, error.toString());
                 this.requestResponseCollection.CurrentResponse = currentResponse;
                 this.requestResponseCollection.Responses[name] = currentResponse;
                 break;

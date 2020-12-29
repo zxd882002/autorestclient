@@ -44,19 +44,32 @@ connection.onCodeLens((codelensParam: CodeLensParams): CodeLens[] => {
   document = documents.get(codelensParam.textDocument.uri) as TextDocument;
 
   let codeLenses: CodeLens[] = [];
-  let ranges: Range[] = engine.getRequestRange(document);
-  for (const range of ranges) {
-    let codeLens: CodeLens = {
-      range: range,
+
+  // one request
+  let requestRanges: Range[] = engine.getRequestRange(document);
+  for (const requestRange of requestRanges) {
+    let requestCodeLens: CodeLens = {
+      range: requestRange,
       command: {
-        arguments: [range],
+        arguments: [requestRange],
         title: 'Send Request',
         command: 'auto-rest-client.request'
       }
     };
-    codeLenses.push(codeLens);
+    codeLenses.push(requestCodeLens);
   }
 
+  // run all
+  let allRequstRange: Range = engine.getAllRequestRange(document);
+  let allRequestcodeLens: CodeLens = {
+    range: allRequstRange,
+    command: {
+      arguments: [allRequstRange],
+      title: 'Send All Request',
+      command: 'auto-rest-client.requestAll'
+    }
+  };
+  codeLenses.push(allRequestcodeLens);
   return codeLenses;
 });
 
@@ -67,6 +80,19 @@ connection.onNotification("auto-rest-client.request", async (range: Range) => {
 
     // call back
     connection.sendNotification("auto-rest-client.response", response);
+  }
+  catch (e) {
+    console.log(e);
+  }
+})
+
+connection.onNotification("auto-rest-client.requestAll", async (range: Range) => {
+  try {
+    console.log("start request all: ");
+    let response: string = await engine.execute(document, range);
+
+    // call back
+    connection.sendNotification("auto-rest-client.responseAll", response);
   }
   catch (e) {
     console.log(e);

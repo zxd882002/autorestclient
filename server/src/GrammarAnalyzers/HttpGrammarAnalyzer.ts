@@ -48,12 +48,20 @@ export default class HttpGrammarAnalyzer implements GrammarAnalyzer {
         return ranges;
     }
 
+    getAllRequestRange(document: TextDocument): Range {
+        let lines: string[] = document.getText().split(LineSplitterRegex);
+        let range: Range = {
+            start: { line: 0, character: 0 },
+            end: { line: lines.length - 1, character: 0 }
+        };
+        return range;
+    }
+
     convertToRequests(document: TextDocument, range: Range, environmentConfigure: EnvironmentConfigure): RequestResponseCollection {
         // if the range doesn't cover the whole request, need to expand the request line
         let lines: string[] = document.getText().split(LineSplitterRegex);
         let [start, end] = this.expandRequestLines(lines, range.start.line, range.end.line);
         lines = lines.slice(start, end + 1);
-
 
         // split the requests
         let requests: { [requestName: string]: Request } = {};
@@ -158,9 +166,11 @@ export default class HttpGrammarAnalyzer implements GrammarAnalyzer {
             }
 
             const isMatchEnd: boolean = BodyScriptEndRegex.test(line);
-            if (isMatchEnd && collectBody) {
-                if (braceCount == 0) {
+            if (isMatchEnd) {
+                if (collectBody && braceCount == 0) {
                     collectBody = false;
+                }
+                else {
                     collectBeforeScript = false;
                     collectAfterScript = false;
                 }

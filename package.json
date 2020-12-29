@@ -18,6 +18,11 @@
             "command": "auto.rest-client.request",
             "title": "Send Request",
             "category": "Rest Client"
+        },
+        {
+            "command": "auto.rest-client.requestAll",
+            "title": "Send All Requests",
+            "category": "Rest Client"
         }
     ],
     "contributes": {

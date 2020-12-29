@@ -19,6 +19,12 @@ export function activate(context: vscode.ExtensionContext) {
 			displayOnWebView(response, context);
 		});
 	}));
+	context.subscriptions.push(vscode.commands.registerCommand("auto-rest-client.requestAll", (range: Range) => {
+		client.sendNotification("auto-rest-client.requestAll", range);
+		client.onNotification("auto-rest-client.responseAll", (response) => {
+			displayOnWebView(response, context);
+		});
+	}));
 }
 
 async function displayOnWebView(response: string, context: vscode.ExtensionContext): Promise<void> {
