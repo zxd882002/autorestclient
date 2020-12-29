@@ -79,7 +79,7 @@ export default class EnvironmentConfigure {
 
             // save it
             let fileUri: URI = URI.parse(`${this.workspaceFolder}/${filePath}`);
-            console.log(`save file to ${fileUri.fsPath}, data ${environmentJson}`);
+            //console.log(`save file to ${fileUri.fsPath}, data ${environmentJson}`);
             fs.writeFileSync(fileUri.fsPath, environmentJson);
         }
     }

@@ -10,6 +10,8 @@ export default class HttpRequestSender implements RequestSender {
 		let bodySize = 0;
 		let headersSize = 0;
 
+		console.log(`Send Request: ${httpRequest.name}`)
+
 		const options = this.prepareOptions(httpRequest);
 		const request = got(httpRequest.url, options);
 		(request as any).on('response', (res: { rawHeaders: any[]; on: (arg0: string, arg1: (chunk: any) => void) => void; }) => {
@@ -27,6 +29,8 @@ export default class HttpRequestSender implements RequestSender {
 		let bodyString = bodyBuffer.toString();
 
 		const responseHeaders: ResponseHeaders = this.normalizeHeaderNames(response.headers, response.rawHeaders);
+
+		console.log(`Receive Response: ${httpRequest.name}, Status code: ${response.statusCode}`)
 
 		return new Response(
 			response.statusCode,

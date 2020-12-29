@@ -14,6 +14,7 @@ import { TextDocument } from 'vscode-languageserver-textdocument';
 import Engine from './Engine';
 import EnvironmentConfigure from './EnvironmentConfigures/EnvironmentConfigure';
 import GrammarAnalyzerFactory from './GrammarAnalyzers/grammarAnalyzerFactory';
+import TimeDelayer from './Utils/TimeDelayer';
 
 let connection = createConnection(ProposedFeatures.all);
 let documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
@@ -75,30 +76,40 @@ connection.onCodeLens((codelensParam: CodeLensParams): CodeLens[] => {
 
 connection.onNotification("auto-rest-client.request", async (range: Range) => {
   try {
-    console.log("start request: ");
+    console.log("start request...");
     let response: string = await engine.execute(document, range);
+    console.log("completed!");
 
     // call back
     connection.sendNotification("auto-rest-client.response", response);
   }
   catch (e) {
-    console.log(e);
+    console.log(e.toString());
   }
 })
 
 connection.onNotification("auto-rest-client.requestAll", async (range: Range) => {
   try {
-    console.log("start request all: ");
+    console.log("start request all...");
     let response: string = await engine.execute(document, range);
+    console.log("completed!");
 
     // call back
     connection.sendNotification("auto-rest-client.responseAll", response);
   }
   catch (e) {
-    console.log(e);
+    console.log(e.toString());
   }
 })
 
-documents.listen(connection);
-
-connection.listen();
+for (let i = 1; i < 10; i++) {
+  try {
+    documents.listen(connection);
+    connection.listen();
+    break;
+  }
+  catch (e) {
+    console.log(e.toString());
+    TimeDelayer.delay(2000);
+  }
+}

@@ -21,8 +21,7 @@ class AutoRestClient {
 
 export default class TypeScriptExecutor implements ScriptExecutor {
     executeScript(content: string) {
-        // execute before script
-        console.log(`execute script: ${content}`);
+        // console.log(`execute script: ${content}`);
         eval(content);
     }
 }

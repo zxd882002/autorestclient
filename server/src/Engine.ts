@@ -41,7 +41,7 @@ export default class Engine {
 
         // get environment
         this.environmentConfigure = new EnvironmentConfigure();
-        let environmentName: string | undefined = grammarAnalyzer.getEnvironmentString(document);
+        let environmentName: string | undefined = grammarAnalyzer.getEnvironmentName(document);
         this.environmentConfigure.initializeEnvironment(this.workSpaceFolder, environmentName);
 
         // get executor
@@ -67,26 +67,31 @@ export default class Engine {
         let [grammarAnalyzer, environmentConfigure, scriptExecutor, requestSender] = this.initializeEngine(document);
 
         // convert Requests
-        this.requestResponseCollection = grammarAnalyzer.convertToRequests(document, range, environmentConfigure);
+        this.requestResponseCollection = grammarAnalyzer.convertToRequests(document, range);
 
         // execute
         for (const name in this.requestResponseCollection.Requests) {
             let currentRequest = this.requestResponseCollection.Requests[name];
             this.requestResponseCollection.CurrentRequest = currentRequest;
 
+            let step: string = "";
             try {
+                step = "replacing place holder";
+                grammarAnalyzer.replaceRequestEnvironmentValue(currentRequest, environmentConfigure);
+
+                step = "executing before script";
                 scriptExecutor.executeScript(currentRequest.beforeScript);
 
-                // send request
+                step = "sending request";
                 let currentResponse = await requestSender.send(currentRequest);
                 this.requestResponseCollection.CurrentResponse = currentResponse;
                 this.requestResponseCollection.Responses[name] = currentResponse;
 
-                // execute after script
+                step = "executing after script";
                 scriptExecutor.executeScript(currentRequest.afterScript);
             }
             catch (error) {
-                let currentResponse = new Response(500, error.toString());
+                let currentResponse = new Response(500, `Error when ${step} for ${currentRequest.name}, Error message: ${error.toString()}`);
                 this.requestResponseCollection.CurrentResponse = currentResponse;
                 this.requestResponseCollection.Responses[name] = currentResponse;
                 break;

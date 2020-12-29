@@ -57,7 +57,7 @@ export default class HttpGrammarAnalyzer implements GrammarAnalyzer {
         return range;
     }
 
-    convertToRequests(document: TextDocument, range: Range, environmentConfigure: EnvironmentConfigure): RequestResponseCollection {
+    convertToRequests(document: TextDocument, range: Range): RequestResponseCollection {
         // if the range doesn't cover the whole request, need to expand the request line
         let lines: string[] = document.getText().split(LineSplitterRegex);
         let [start, end] = this.expandRequestLines(lines, range.start.line, range.end.line);
@@ -72,7 +72,7 @@ export default class HttpGrammarAnalyzer implements GrammarAnalyzer {
             if (line.match(RequestSplitRegex) || lineNumber == lines.length - 1) {
                 endLineNumber = lineNumber;
                 let requestLines: string[] = lines.slice(startLineNumber, endLineNumber + 1);
-                let request: Request = this.convertToRequest(requestLines, environmentConfigure);
+                let request: Request = this.convertToRequest(requestLines);
                 requests[request.name] = request;
                 startLineNumber = lineNumber + 1;
             }
@@ -82,14 +82,14 @@ export default class HttpGrammarAnalyzer implements GrammarAnalyzer {
         return requestResponseCollection;
     }
 
-    getEnvironmentString(document: TextDocument): string | undefined {
+    getEnvironmentName(document: TextDocument): string | undefined {
         let documentLines: string[] = document.getText().split(LineSplitterRegex);
         for (let lineNumber: number = 0; lineNumber < documentLines.length; lineNumber++) {
             let line: string = documentLines[lineNumber];
             let match: RegExpMatchArray | null = line.match(RequestEnvironmentRegex);
             if (match && match.groups) {
                 let environmentName = match.groups["envName"];
-                console.log(`got the env name from top line: ${environmentName}`);
+                //console.log(`got the env name from top line: ${environmentName}`);
                 return environmentName.toLocaleLowerCase();
             }
             else if (line.match(EmptyLineRegex)) {
@@ -102,9 +102,20 @@ export default class HttpGrammarAnalyzer implements GrammarAnalyzer {
         return undefined;
     }
 
-    private convertToRequest(lines: string[], environmentConfigure: EnvironmentConfigure): Request {
-        console.log(lines);
+    replaceRequestEnvironmentValue(request: Request, environmentConfigure: EnvironmentConfigure): void {
+        // url
+        request.url = this.replaceEnvironmentValue(request.url, environmentConfigure);
 
+        // header
+        for (let key in request.headers) {
+            request.headers[key] = this.replaceEnvironmentValue(request.headers[key] as string, environmentConfigure);
+        }
+
+        // body
+        request.body = this.replaceEnvironmentValue(request.body, environmentConfigure);
+    }
+
+    private convertToRequest(lines: string[]): Request {
         let name: string = "";
         let method: string = "";
         let url: string = "";
@@ -130,7 +141,7 @@ export default class HttpGrammarAnalyzer implements GrammarAnalyzer {
             const isMatchRequestLine: RegExpMatchArray | null = line.match(RequestLineRegex);
             if (isMatchRequestLine !== null && isMatchRequestLine.groups) {
                 method = isMatchRequestLine.groups["method"];
-                url = this.replaceEnvironmentValue(isMatchRequestLine.groups["url"], environmentConfigure);
+                url = isMatchRequestLine.groups["url"];
                 scriptPosition = "after";
                 return;
             }
@@ -139,7 +150,7 @@ export default class HttpGrammarAnalyzer implements GrammarAnalyzer {
             if (isMatchHeaderLine !== null && isMatchHeaderLine.groups) {
                 let fieldName: string = isMatchHeaderLine.groups["headerName"];
                 let fieldValue: string = isMatchHeaderLine.groups["headerValue"];
-                headers[fieldName] = this.replaceEnvironmentValue(fieldValue, environmentConfigure);
+                headers[fieldName] = fieldValue;
                 return;
             }
 
@@ -162,7 +173,7 @@ export default class HttpGrammarAnalyzer implements GrammarAnalyzer {
             if (collectBody) {
                 braceCount += line.match(/\{/g)?.length ?? 0;
                 braceCount -= line.match(/\}/g)?.length ?? 0;
-                body += this.replaceEnvironmentValue(line, environmentConfigure);
+                body += line;
             }
 
             const isMatchEnd: boolean = BodyScriptEndRegex.test(line);
@@ -265,6 +276,7 @@ export default class HttpGrammarAnalyzer implements GrammarAnalyzer {
             if (this.isEndLine(endLine)) {
                 foundNearestEndLine = true;
                 endLineNumber = tempEndLineNumber - 1;
+                break;
             }
         }
 
@@ -273,7 +285,7 @@ export default class HttpGrammarAnalyzer implements GrammarAnalyzer {
             endLineNumber = lines.length - 1;
         }
 
-        console.log(`start = ${startLineNumber}, end = ${endLineNumber}`)
+        //console.log(`start = ${startLineNumber}, end = ${endLineNumber}`)
         return [startLineNumber, endLineNumber];
     }
 
