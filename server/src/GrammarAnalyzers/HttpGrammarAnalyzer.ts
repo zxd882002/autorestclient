@@ -1,55 +1,41 @@
 import { Range, TextDocument } from "vscode-languageserver-textdocument";
 import EnvironmentConfigure from "../EnvironmentConfigures/EnvironmentConfigure";
-import Request, { RequestHeaders } from "../Contracts/Request";
+import Request from "../Contracts/Request";
 import RequestResponseCollection from "../Contracts/RequestResponseCollection";
 import GrammarAnalyzer from "./GrammarAnalyzer";
-
-export const LineSplitterRegex = /\r?\n/;
-export const RequestNameRegex = /^@Name\s+(?<requestName>\w+)\s*$/;
-export const RequestEnvironmentRegex = /^@Env\s+(?<envName>\w+)\s*$/;
-export const RequestSplitRegex = /^\s*###+\s*$/;
-export const RequestLineRegex = /^(?:(?<method>get|post|put|delete|patch|head|options|connect|trace)\s+)(?<url>.+?)(?:\s+(HTTP)\/(\d+.\d+))?$/i;
-export const HeaderLineRegex = /^(?<headerName>[\w\-]+)\s*(\:)\s*(?<headerValue>.*?)\s*$/;
-export const EmptyLineRegex = /^\s*$/;
-export const BodyStartRegex = /^\s*{\s*$/;
-export const ScriptStartRegex = /^\s*@{\s*$/;
-export const BodyScriptEndRegex = /^\s*}\s*$/;
-export const PlaceHolderRegexRegex = /{(?<property>\w+?)}/g;
-export const UrlSplitRegex = /\/(?<content>\w+)/g;
+import HttpGrammarFileAnalyzer from "./HttpGrammarFileAnalyzer";
+import { Dictionary } from "../Contracts/Dictionary";
 
 export default class HttpGrammarAnalyzer implements GrammarAnalyzer {
 
+    private httpGrammarFileAnalyzer: HttpGrammarFileAnalyzer;
+    private placeHolderRegexRegex = /{(?<property>\w+?)}/g;
+    private lineSplitterRegex = /\r?\n/;
+
+    constructor() {
+        this.httpGrammarFileAnalyzer = new HttpGrammarFileAnalyzer();
+    }
+
     getRequestRange(document: TextDocument): Range[] {
+        let lines: string[] = document.getText().split(this.lineSplitterRegex);
+        let [requests] = this.httpGrammarFileAnalyzer.analyzeDocument(lines);
         let ranges = [];
-        let lines: string[] = document.getText().split(LineSplitterRegex);
-        let startLine: number = 0;
-        let endLine: number = 0;
-        while (endLine <= lines.length - 1) {
-            let [start, end] = this.expandRequestLines(lines, startLine, endLine);
 
-            let range: Range = {
-                start: { line: start, character: 0 },
-                end: { line: end, character: 0 }
-            };
-            ranges.push(range);
-
-            for (start = end + 1; start <= lines.length - 1; start++) {
-                let line = lines[start];
-                if (this.isStartLine(line)) {
-                    startLine = start;
-                    endLine = start;
-                    break;
-                }
+        for (let request of requests) {
+            if (request.startLine != -1 && request.endLine != -1) {
+                let range: Range = {
+                    start: { line: request.startLine, character: 0 },
+                    end: { line: request.endLine, character: 0 }
+                };
+                ranges.push(range);
             }
-
-            if (start > lines.length - 1)
-                break;
         }
+
         return ranges;
     }
 
     getAllRequestRange(document: TextDocument): Range {
-        let lines: string[] = document.getText().split(LineSplitterRegex);
+        let lines: string[] = document.getText().split(this.lineSplitterRegex);
         let range: Range = {
             start: { line: 0, character: 0 },
             end: { line: lines.length - 1, character: 0 }
@@ -58,48 +44,24 @@ export default class HttpGrammarAnalyzer implements GrammarAnalyzer {
     }
 
     convertToRequests(document: TextDocument, range: Range): RequestResponseCollection {
-        // if the range doesn't cover the whole request, need to expand the request line
-        let lines: string[] = document.getText().split(LineSplitterRegex);
-        let [start, end] = this.expandRequestLines(lines, range.start.line, range.end.line);
-        lines = lines.slice(start, end + 1);
-
-        // split the requests
-        let requests: { [requestName: string]: Request } = {};
-        let startLineNumber = 0;
-        let endLineNumber = 0;
-        for (let lineNumber = 0; lineNumber < lines.length; lineNumber++) {
-            let line: string = lines[lineNumber];
-            if (line.match(RequestSplitRegex) || lineNumber == lines.length - 1) {
-                endLineNumber = lineNumber;
-                let requestLines: string[] = lines.slice(startLineNumber, endLineNumber + 1);
-                let request: Request = this.convertToRequest(requestLines);
-                requests[request.name] = request;
-                startLineNumber = lineNumber + 1;
+        let lines: string[] = document.getText().split(this.lineSplitterRegex);
+        let [requests] = this.httpGrammarFileAnalyzer.analyzeDocument(lines);
+        let requestDictionary: Dictionary<string, Request> = {};
+        for (let request of requests) {
+            let requestStartLine = request.startLine;
+            let requestEndLine = request.endLine;
+            if (!(range.end.line < requestStartLine || requestEndLine < range.start.line)) {
+                requestDictionary[request.name] = request;
             }
         }
-
-        let requestResponseCollection: RequestResponseCollection = new RequestResponseCollection(requests);
+        let requestResponseCollection: RequestResponseCollection = new RequestResponseCollection(requestDictionary);
         return requestResponseCollection;
     }
 
     getEnvironmentName(document: TextDocument): string | undefined {
-        let documentLines: string[] = document.getText().split(LineSplitterRegex);
-        for (let lineNumber: number = 0; lineNumber < documentLines.length; lineNumber++) {
-            let line: string = documentLines[lineNumber];
-            let match: RegExpMatchArray | null = line.match(RequestEnvironmentRegex);
-            if (match && match.groups) {
-                let environmentName = match.groups["envName"];
-                //console.log(`got the env name from top line: ${environmentName}`);
-                return environmentName.toLocaleLowerCase();
-            }
-            else if (line.match(EmptyLineRegex)) {
-                continue;
-            }
-            else {
-                break;
-            }
-        }
-        return undefined;
+        let lines: string[] = document.getText().split(this.lineSplitterRegex);
+        let [requests, environmentName] = this.httpGrammarFileAnalyzer.analyzeDocument(lines, true);
+        return environmentName;
     }
 
     replaceRequestEnvironmentValue(request: Request, environmentConfigure: EnvironmentConfigure): void {
@@ -115,105 +77,8 @@ export default class HttpGrammarAnalyzer implements GrammarAnalyzer {
         request.body = this.replaceEnvironmentValue(request.body, environmentConfigure);
     }
 
-    private convertToRequest(lines: string[]): Request {
-        let name: string = "";
-        let method: string = "";
-        let url: string = "";
-        let headers: RequestHeaders = {};
-        let body: string = "";
-        let beforeScript: string = "";
-        let afterScript: string = "";
-
-        let scriptPosition: string = "before"; // before, after
-        let collectBody: boolean = false;
-        let collectBeforeScript: boolean = false;
-        let collectAfterScript: boolean = false;
-
-        let braceCount = 0;
-
-        lines.forEach(line => {
-
-            const isMatchRequestNameLine: RegExpMatchArray | null = line.match(RequestNameRegex)
-            if (isMatchRequestNameLine !== null && isMatchRequestNameLine.groups) {
-                name = isMatchRequestNameLine.groups["requestName"];
-            }
-
-            const isMatchRequestLine: RegExpMatchArray | null = line.match(RequestLineRegex);
-            if (isMatchRequestLine !== null && isMatchRequestLine.groups) {
-                method = isMatchRequestLine.groups["method"];
-                url = isMatchRequestLine.groups["url"];
-                scriptPosition = "after";
-                return;
-            }
-
-            const isMatchHeaderLine: RegExpMatchArray | null = line.match(HeaderLineRegex);
-            if (isMatchHeaderLine !== null && isMatchHeaderLine.groups) {
-                let fieldName: string = isMatchHeaderLine.groups["headerName"];
-                let fieldValue: string = isMatchHeaderLine.groups["headerValue"];
-                headers[fieldName] = fieldValue;
-                return;
-            }
-
-            const isMatchBodyStart: boolean = BodyStartRegex.test(line);
-            if (isMatchBodyStart) {
-                collectBody = true;
-            }
-
-            const isMatchScriptStart: boolean = ScriptStartRegex.test(line);
-            if (isMatchScriptStart) {
-                if (scriptPosition === "before") {
-                    collectBeforeScript = true;
-                } else {
-                    collectAfterScript = true;
-                }
-
-                return;
-            }
-
-            if (collectBody) {
-                braceCount += line.match(/\{/g)?.length ?? 0;
-                braceCount -= line.match(/\}/g)?.length ?? 0;
-                body += line;
-            }
-
-            const isMatchEnd: boolean = BodyScriptEndRegex.test(line);
-            if (isMatchEnd) {
-                if (collectBody && braceCount == 0) {
-                    collectBody = false;
-                }
-                else {
-                    collectBeforeScript = false;
-                    collectAfterScript = false;
-                }
-            }
-
-            if (collectBeforeScript) {
-                beforeScript += line;
-                beforeScript += "\r\n";
-            }
-
-            if (collectAfterScript) {
-                afterScript += line;
-                afterScript += "\r\n";
-            }
-        });
-
-        // if the name is not given. use the url as name
-        if (name === "") {
-            let match = UrlSplitRegex.exec(url);
-            while (match !== null && match.groups !== undefined) {
-                name = match.groups.content;
-                match = UrlSplitRegex.exec(url);
-            }
-
-            name = `${name}_${Math.floor(Math.random() * 1000) + 1}`
-        }
-
-        return new Request(name, method, url, headers, body, beforeScript, afterScript);
-    }
-
     private replaceEnvironmentValue(text: string, environmentConfigure: EnvironmentConfigure): string {
-        let match = PlaceHolderRegexRegex.exec(text);
+        let match = this.placeHolderRegexRegex.exec(text);
         while (match !== null && match.groups !== undefined) {
             const property = match.groups.property;
             const [propertyName, parameter] = property.split("|");
@@ -221,89 +86,8 @@ export default class HttpGrammarAnalyzer implements GrammarAnalyzer {
             if (value !== undefined) {
                 text = text.replace(`{${property}}`, value);
             }
-            match = PlaceHolderRegexRegex.exec(text);
+            match = this.placeHolderRegexRegex.exec(text);
         }
         return text;
-    }
-
-    private expandRequestLines(lines: string[], startLineNumber: number, endLineNumber: number): [number, number] {
-        // find start 
-        let selectedStartLine: string = lines[startLineNumber];
-        let foundNearestStartLine: boolean = this.isStartLine(selectedStartLine);
-        if (!foundNearestStartLine) {
-            // search ahead            
-            for (let tempStartLineNumber = startLineNumber - 1; tempStartLineNumber >= 0; tempStartLineNumber--) {
-                let startLine: string = lines[tempStartLineNumber];
-                if (this.isStartLine(startLine)) {
-                    foundNearestStartLine = true;
-                    startLineNumber = tempStartLineNumber;
-                    break;
-                }
-            }
-        }
-        if (foundNearestStartLine) {
-            // search ahead to find the real start line            
-            for (let tempStartLineNumber: number = startLineNumber - 1; tempStartLineNumber >= 0; tempStartLineNumber--) {
-                let startLine: string = lines[tempStartLineNumber];
-                if (!this.isStartLine(startLine)) {
-                    startLineNumber = tempStartLineNumber + 1;
-                    break;
-                }
-            }
-        } else {
-            // search the next start line
-            for (let tempStartLineNumber: number = startLineNumber + 1; tempStartLineNumber < lines.length; tempStartLineNumber++) {
-                let startLine: string = lines[tempStartLineNumber];
-                if (this.isStartLine(startLine)) {
-                    foundNearestStartLine = true;
-                    startLineNumber = tempStartLineNumber;
-                    break;
-                }
-            }
-        }
-
-        if (!foundNearestStartLine) {
-            throw new Error("Not found nearest start line");
-        }
-
-        // find end
-        let foundNearestEndLine: boolean = false;
-        for (let tempEndLineNumber = endLineNumber + 1; tempEndLineNumber < lines.length; tempEndLineNumber++) {
-            let endLine: string = lines[tempEndLineNumber];
-            if (endLine.match(EmptyLineRegex)) {
-                continue;
-            }
-            if (this.isEndLine(endLine)) {
-                foundNearestEndLine = true;
-                endLineNumber = tempEndLineNumber - 1;
-                break;
-            }
-        }
-
-        if (!foundNearestEndLine) {
-            foundNearestEndLine = true;
-            endLineNumber = lines.length - 1;
-        }
-
-        //console.log(`start = ${startLineNumber}, end = ${endLineNumber}`)
-        return [startLineNumber, endLineNumber];
-    }
-
-    private isStartLine(line: string): boolean {
-        let isStartLine: boolean = false;
-        if (line.match(RequestNameRegex)) {
-            isStartLine = true;
-        }
-        else if (line.match(ScriptStartRegex)) {
-            isStartLine = true;
-        }
-        else if (line.match(RequestLineRegex)) {
-            isStartLine = true;
-        }
-        return isStartLine;
-    }
-
-    private isEndLine(line: string): boolean {
-        return line.match(RequestSplitRegex) !== null;
     }
 }

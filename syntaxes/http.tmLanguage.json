@@ -21,7 +21,7 @@
 			"patterns": [
 				{
 					"name": "http.macro",
-					"match": "(@\\w+)\\s+(\\w+)",
+					"match": "(@(?:Name|Env|File))\\s+(.+)",
 					"captures": {
 						"1": {
 							"name": "keyword.http.macro"
@@ -83,7 +83,7 @@
 					},
 					"match": "^([\\w\\-]+)\\s*(\\:)\\s*(.*?)\\s*$",
 					"name": "http.headers"
-				}				
+				}
 			]
 		}
 	},
