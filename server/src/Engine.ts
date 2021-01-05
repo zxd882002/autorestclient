@@ -14,9 +14,6 @@ import HttpGrammarAnalyzer from './GrammarAnalyzers/HttpGrammarAnalyzer';
 
 export default class Engine {
     private environmentConfigure?: EnvironmentConfigure;
-    private requestResponseCollection?: RequestResponseCollection;
-    private lineSplitterRegex = /\r?\n/;
-
     public get Environment(): EnvironmentConfigure {
         let environment = this.environmentConfigure;
         if (environment === undefined)
@@ -24,6 +21,7 @@ export default class Engine {
         return environment;
     }
 
+    private requestResponseCollection?: RequestResponseCollection;
     public get RequestResponseCollection(): RequestResponseCollection {
         let requestResponseCollection = this.requestResponseCollection;
         if (requestResponseCollection === undefined)
@@ -34,13 +32,11 @@ export default class Engine {
     constructor(
         private workSpaceFolder: string
     ) {
-        this.requestResponseCollection = undefined;
         AutoRestClientStaticDecorator.engine = this;
     }
 
     public getRequestRange(content: string): Range[] {
-        let [grammarFileAnalyzer] = this.initializeEngine();
-        let [requests] = grammarFileAnalyzer.analyze(content);
+        let requests = this.analyzeContent(content);
         let ranges = [];
 
         for (let request of requests) {
@@ -57,12 +53,19 @@ export default class Engine {
     }
 
     public getAllRequestRange(content: string): Range {
-        let lines: string[] = content.split(this.lineSplitterRegex);
+        let lineSplitterRegex = /\r?\n/;
+        let lines: string[] = content.split(lineSplitterRegex);
         let range: Range = {
             start: { line: 0, character: 0 },
             end: { line: lines.length - 1, character: 0 }
         };
         return range;
+    }
+
+    public analyzeContent(content: string): Request[] {
+        let [grammarFileAnalyzer] = this.initializeEngine();
+        let [requests] = grammarFileAnalyzer.analyze(content);
+        return requests;
     }
 
     public async execute(content: string, range: Range): Promise<string> {
@@ -71,13 +74,7 @@ export default class Engine {
         // convert Requests
         let [requests, environmentName] = grammarAnalyzer.analyze(content);
         let requestDictionary: Dictionary<string, Request> = {};
-        for (let request of requests) {
-            let requestStartLine = request.startLine;
-            let requestEndLine = request.endLine;
-            if (!(range.end.line < requestStartLine || requestEndLine < range.start.line)) {
-                requestDictionary[request.name] = request;
-            }
-        }
+        this.convertRequestToDictionary(requests, requestDictionary, range);
         let requestResponseCollection: RequestResponseCollection = new RequestResponseCollection(requestDictionary);
         this.requestResponseCollection = requestResponseCollection;
 
@@ -121,9 +118,24 @@ export default class Engine {
         return responseText;
     }
 
+    private convertRequestToDictionary(requests: Request[], requestDictionary: Dictionary<string, Request>, range?: Range) {
+        for (let request of requests) {
+            let requestStartLine = request.startLine;
+            let requestEndLine = request.endLine;
+            if (range === undefined || !(range.end.line < requestStartLine || requestEndLine < range.start.line)) {
+                if (request.innerRequests !== undefined) {
+                    this.convertRequestToDictionary(request.innerRequests, requestDictionary)
+                }
+                else {
+                    requestDictionary[request.name] = request;
+                }
+            }
+        }
+    }
+
     private initializeEngine(): [GrammarAnalyzer, EnvironmentConfigure, ScriptExecutor, RequestSender] {
         // get grammarAnalyzer
-        let grammarAnalyzer = new HttpGrammarAnalyzer(this.workSpaceFolder);
+        let grammarAnalyzer = new HttpGrammarAnalyzer(this.workSpaceFolder, this);
 
         // get environment
         let environmentConfigure = new EnvironmentConfigure();

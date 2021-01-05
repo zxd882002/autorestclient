@@ -4,6 +4,7 @@ import GuidGenerator from "../Utils/GuidGenerator";
 import HttpGrammarElement from "./HttpGrammarElement";
 import { URI } from "vscode-uri";
 import GrammarAnalyzer from './GrammarAnalyzer';
+import Engine from '../Engine';
 
 export default class HttpGrammarAnalyzer implements GrammarAnalyzer {
     environmentElement: HttpGrammarElement = {
@@ -52,7 +53,9 @@ export default class HttpGrammarAnalyzer implements GrammarAnalyzer {
         regex: /^\s*@File\s+(?<filePath>[^\s]+)\s*$/,
         filePath: "",
         fileAnalyzer: this,
+        lineNumber: Number,
         isConditionPass(lines: string[], lineNumber: number, braceCounter: number) {
+            this.lineNumber = lineNumber;
             let line = lines[lineNumber];
             let match = this.regex.exec(line);
             if (match) {
@@ -64,7 +67,10 @@ export default class HttpGrammarAnalyzer implements GrammarAnalyzer {
         onConditionPass(requests: Request[], braceCounter: number) {
             let innerFileUri = URI.parse(`${this.fileAnalyzer.workspaceFolder}/${this.filePath}`);
             const innerContent = fs.readFileSync(innerFileUri.fsPath, 'utf8');
-
+            let innerRequests = this.fileAnalyzer.engine.analyzeContent(innerContent);
+            this.fileAnalyzer.createRequestIfNotExists(requests, this.lineNumber);
+            requests[requests.length - 1].innerRequests = innerRequests;
+            requests[requests.length - 1].endLine = this.lineNumber;
             return [requests, braceCounter];
         },
         nextElements: []
@@ -339,7 +345,7 @@ export default class HttpGrammarAnalyzer implements GrammarAnalyzer {
         nextElements: []
     }
 
-    constructor(private workspaceFolder: string) {
+    constructor(private workspaceFolder: string, private engine: Engine) {
         // header 
         this.headerElement.nextElements.push(this.environmentElement);
         this.headerElement.nextElements.push(this.requestSplitElement);

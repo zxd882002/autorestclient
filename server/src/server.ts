@@ -18,7 +18,7 @@ let connection = createConnection(ProposedFeatures.all);
 let documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
 let workspaceFolders: WorkspaceFolder[] | null;
 let engine: Engine;
-let document: TextDocument;
+let documentContent: string;
 
 connection.onInitialize((params: InitializeParams) => {
   // pre-condition
@@ -41,12 +41,12 @@ connection.onInitialize((params: InitializeParams) => {
 
 connection.onCodeLens((codelensParam: CodeLensParams): CodeLens[] => {
   console.log(codelensParam.textDocument.uri);
-  document = documents.get(codelensParam.textDocument.uri) as TextDocument;
+  documentContent = (documents.get(codelensParam.textDocument.uri) as TextDocument).getText();
 
   let codeLenses: CodeLens[] = [];
 
-  // one request
-  let requestRanges: Range[] = engine.getRequestRange(document.getText());
+  // run one request
+  let requestRanges: Range[] = engine.getRequestRange(documentContent);
   for (const requestRange of requestRanges) {
     let requestCodeLens: CodeLens = {
       range: requestRange,
@@ -60,7 +60,7 @@ connection.onCodeLens((codelensParam: CodeLensParams): CodeLens[] => {
   }
 
   // run all
-  let allRequstRange: Range = engine.getAllRequestRange(document.getText());
+  let allRequstRange: Range = engine.getAllRequestRange(documentContent);
   let allRequestcodeLens: CodeLens = {
     range: allRequstRange,
     command: {
@@ -76,7 +76,7 @@ connection.onCodeLens((codelensParam: CodeLensParams): CodeLens[] => {
 connection.onNotification("auto-rest-client.request", async (range: Range) => {
   try {
     console.log("start request...");
-    let response: string = await engine.execute(document.getText(), range);
+    let response: string = await engine.execute(documentContent, range);
     console.log("completed!");
 
     // call back
@@ -90,7 +90,7 @@ connection.onNotification("auto-rest-client.request", async (range: Range) => {
 connection.onNotification("auto-rest-client.requestAll", async (range: Range) => {
   try {
     console.log("start request all...");
-    let response: string = await engine.execute(document.getText(), range);
+    let response: string = await engine.execute(documentContent, range);
     console.log("completed!");
 
     // call back
