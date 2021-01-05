@@ -21,7 +21,7 @@
 			"patterns": [
 				{
 					"name": "http.macro",
-					"match": "(@(?:Name|Env|File))\\s+(.+)",
+					"match": "(@(?:Name|Env|File))\\s+([^\\s]+)",
 					"captures": {
 						"1": {
 							"name": "keyword.http.macro"

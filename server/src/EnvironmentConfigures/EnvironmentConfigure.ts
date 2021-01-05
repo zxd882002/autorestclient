@@ -84,6 +84,21 @@ export default class EnvironmentConfigure {
         }
     }
 
+    public replaceEnvironmentValue(text: string): string {
+        let placeHolderRegexRegex = /{(?<property>\w+?)}/g;
+        let match = placeHolderRegexRegex.exec(text);
+        while (match !== null && match.groups !== undefined) {
+            const property = match.groups.property;
+            const [propertyName, parameter] = property.split("|");
+            const value = this.getEnvironmentValue(propertyName, parameter);
+            if (value !== undefined) {
+                text = text.replace(`{${property}}`, value);
+            }
+            match = placeHolderRegexRegex.exec(text);
+        }
+        return text;
+    }
+
     private extractEnvironment(content: string, path: string) {
         let configureJson = JSON.parse(content);
         for (const key in configureJson) {

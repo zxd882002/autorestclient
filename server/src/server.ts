@@ -12,8 +12,6 @@ import {
 
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import Engine from './Engine';
-import EnvironmentConfigure from './EnvironmentConfigures/EnvironmentConfigure';
-import GrammarAnalyzerFactory from './GrammarAnalyzers/grammarAnalyzerFactory';
 import TimeDelayer from './Utils/TimeDelayer';
 
 let connection = createConnection(ProposedFeatures.all);
@@ -42,12 +40,13 @@ connection.onInitialize((params: InitializeParams) => {
 });
 
 connection.onCodeLens((codelensParam: CodeLensParams): CodeLens[] => {
+  console.log(codelensParam.textDocument.uri);
   document = documents.get(codelensParam.textDocument.uri) as TextDocument;
 
   let codeLenses: CodeLens[] = [];
 
   // one request
-  let requestRanges: Range[] = engine.getRequestRange(document);
+  let requestRanges: Range[] = engine.getRequestRange(document.getText());
   for (const requestRange of requestRanges) {
     let requestCodeLens: CodeLens = {
       range: requestRange,
@@ -61,7 +60,7 @@ connection.onCodeLens((codelensParam: CodeLensParams): CodeLens[] => {
   }
 
   // run all
-  let allRequstRange: Range = engine.getAllRequestRange(document);
+  let allRequstRange: Range = engine.getAllRequestRange(document.getText());
   let allRequestcodeLens: CodeLens = {
     range: allRequstRange,
     command: {
@@ -77,7 +76,7 @@ connection.onCodeLens((codelensParam: CodeLensParams): CodeLens[] => {
 connection.onNotification("auto-rest-client.request", async (range: Range) => {
   try {
     console.log("start request...");
-    let response: string = await engine.execute(document, range);
+    let response: string = await engine.execute(document.getText(), range);
     console.log("completed!");
 
     // call back
@@ -91,7 +90,7 @@ connection.onNotification("auto-rest-client.request", async (range: Range) => {
 connection.onNotification("auto-rest-client.requestAll", async (range: Range) => {
   try {
     console.log("start request all...");
-    let response: string = await engine.execute(document, range);
+    let response: string = await engine.execute(document.getText(), range);
     console.log("completed!");
 
     // call back
