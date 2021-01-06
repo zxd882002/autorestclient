@@ -46,9 +46,19 @@ export default class RequestResponseCollection {
                 break;
             }
 
+            let request = this.requests[name];
+            if (request.headers !== undefined && (request.headers["Content-Type"] as string).includes('json')) {
+                request.body = JSON.parse(request.body);
+            }
+
+            let response = this.responses[name];
+            if (response.headers !== undefined && (response.headers['Content-Type'] as string).includes('json')) {
+                response.body = JSON.parse(response.body);
+            }
+
             responseSummary[name] = {};
-            responseSummary[name]["Request"] = this.requests[name];
-            responseSummary[name]["Response"] = this.responses[name];
+            responseSummary[name]["Request"] = request;
+            responseSummary[name]["Response"] = response;
         }
         return JSON.stringify(responseSummary, null, 4);
     }

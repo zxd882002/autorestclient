@@ -100,10 +100,12 @@ export default class EnvironmentConfigure {
     }
 
     private extractEnvironment(content: string, path: string) {
-        let configureJson = JSON.parse(content);
-        for (const key in configureJson) {
-            const value = configureJson[key];
-            this.extract(key, () => value, path);
+        if (content !== '') {
+            let configureJson = JSON.parse(content);
+            for (const key in configureJson) {
+                const value = configureJson[key];
+                this.extract(key, () => value, path);
+            }
         }
     }
 

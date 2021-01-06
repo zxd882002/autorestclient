@@ -5,7 +5,7 @@ export default class Request {
 	public method: string;
 	public url: string;
 	public headers: RequestHeaders;
-	public body: string;
+	public body: any;
 	public beforeScript: string;
 	public afterScript: string;
 	public startLine: number;

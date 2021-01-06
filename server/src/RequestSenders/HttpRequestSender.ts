@@ -25,16 +25,16 @@ export default class HttpRequestSender implements RequestSender {
 		});
 
 		const response = await request;
-		const bodyBuffer = response.body;
-		let bodyString = bodyBuffer.toString();
 
 		const responseHeaders: ResponseHeaders = this.normalizeHeaderNames(response.headers, response.rawHeaders);
 
-		console.log(`Receive Response: ${httpRequest.name}, Status code: ${response.statusCode}`)
+		const bodyBuffer = response.body;
+		let body = bodyBuffer.toString();
 
+		console.log(`Receive Response: ${httpRequest.name}, Status code: ${response.statusCode}`)
 		return new Response(
 			response.statusCode,
-			bodyString,
+			body,
 			response.statusMessage,
 			response.httpVersion,
 			responseHeaders,

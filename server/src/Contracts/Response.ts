@@ -8,7 +8,7 @@ export type ResponseHeaders = http.IncomingHttpHeaders;
 export default class Response {
 	public constructor(
 		public statusCode: number,
-		public body: string,
+		public body: any,
 		public statusMessage?: string,
 		public httpVersion?: string,
 		public headers?: ResponseHeaders,
