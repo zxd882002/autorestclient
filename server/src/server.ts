@@ -40,7 +40,6 @@ connection.onInitialize((params: InitializeParams) => {
 });
 
 connection.onCodeLens((codelensParam: CodeLensParams): CodeLens[] => {
-  console.log(codelensParam.textDocument.uri);
   documentContent = (documents.get(codelensParam.textDocument.uri) as TextDocument).getText();
 
   let codeLenses: CodeLens[] = [];
