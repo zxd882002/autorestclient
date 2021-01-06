@@ -2,7 +2,7 @@
     "name": "autorestclient",
     "displayName": "AutoRestClient",
     "description": "Auto Rest Client",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "publisher": "Xudong",
     "engines": {
         "vscode": "^1.46.0"
