@@ -46,7 +46,8 @@ async function displayOnWebView(response: string, context: vscode.ExtensionConte
 
 		let workspaceFolder = vscode.workspace.workspaceFolders[0].uri;
 		let responseFolder = vscode.Uri.parse(`${workspaceFolder}/Responses/`);
-		fs.mkdirSync(responseFolder.fsPath);
+		if (!fs.existsSync(responseFolder.fsPath))
+			fs.mkdirSync(responseFolder.fsPath);
 		let fileUri = vscode.Uri.parse(`${workspaceFolder}/Responses/Response_${year}${month}${day}_${hour}${minute}${second}.json`);
 		fs.writeFileSync(fileUri.fsPath, response);
 
