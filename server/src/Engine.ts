@@ -88,11 +88,11 @@ export default class Engine {
 
             let step: string = "";
             try {
-                step = "replacing place holder";
-                this.replaceRequestEnvironmentValue(currentRequest, environmentConfigure);
-
                 step = "executing before script";
                 scriptExecutor.executeScript(currentRequest.beforeScript);
+
+                step = "replacing place holder";
+                this.replaceRequestEnvironmentValue(currentRequest, environmentConfigure);
 
                 step = "sending request";
                 let currentResponse = await requestSender.send(currentRequest);
