@@ -1,30 +1,47 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
-
+import TriggerableProvider from './utils/TriggerableCodeLensProvider'
 import {
 	LanguageClient,
 	LanguageClientOptions,
 	Range,
 	ServerOptions,
 	TransportKind
-} from 'vscode-languageclient';
+} from 'vscode-languageclient/node';
 
 let client: LanguageClient;
 
 export function activate(context: vscode.ExtensionContext) {
 	connectServiceLanguageProtocol(context);
+	let triggerableProvider = new TriggerableProvider();
+	context.subscriptions.push(vscode.languages.registerCodeLensProvider('http', triggerableProvider));
 	context.subscriptions.push(vscode.commands.registerCommand("auto-rest-client.request", (range: Range) => {
 		client.sendNotification("auto-rest-client.request", range);
+		client.onNotification("auto-rest-client.onRequesting", () => {
+			triggerableProvider.onDidChangeConfiguration(null);
+		});
+		client.onNotification("auto-rest-client.onRequestComplete", () => {
+			triggerableProvider.onDidChangeConfiguration(null);
+		})
 		client.onNotification("auto-rest-client.response", (response) => {
 			displayOnWebView(response, context);
 		});
 	}));
 	context.subscriptions.push(vscode.commands.registerCommand("auto-rest-client.requestAll", (range: Range) => {
 		client.sendNotification("auto-rest-client.requestAll", range);
+		client.onNotification("auto-rest-client.onRequestingAll", () => {
+			triggerableProvider.onDidChangeConfiguration(null);
+		});
+		client.onNotification("auto-rest-client.onRequestComplete", () => {
+			triggerableProvider.onDidChangeConfiguration(null);
+		})
 		client.onNotification("auto-rest-client.responseAll", (response) => {
 			displayOnWebView(response, context);
 		});
+	}));
+	context.subscriptions.push(vscode.commands.registerCommand("auto-rest-client.cancelRequest", () => {
+		client.sendNotification("auto-rest-client.cancelRequest");
 	}));
 }
 
@@ -46,9 +63,14 @@ async function displayOnWebView(response: string, context: vscode.ExtensionConte
 
 		let workspaceFolder = vscode.workspace.workspaceFolders[0].uri;
 		let responseFolder = vscode.Uri.parse(`${workspaceFolder}/Responses/`);
-		if (!fs.existsSync(responseFolder.fsPath))
+		if (!fs.existsSync(responseFolder.fsPath)) {
 			fs.mkdirSync(responseFolder.fsPath);
-		let fileUri = vscode.Uri.parse(`${workspaceFolder}/Responses/Response_${year}${month}${day}_${hour}${minute}${second}.json`);
+		}
+		let archiveFolder = vscode.Uri.parse(`${responseFolder}/${year}${month}${day}`)
+		if (!fs.existsSync(archiveFolder.fsPath)) {
+			fs.mkdirSync(archiveFolder.fsPath);
+		}
+		let fileUri = vscode.Uri.parse(`${archiveFolder}/Response_${year}${month}${day}_${hour}${minute}${second}.json`);
 		fs.writeFileSync(fileUri.fsPath, response);
 
 		let responseDocument = await vscode.workspace.openTextDocument(fileUri);

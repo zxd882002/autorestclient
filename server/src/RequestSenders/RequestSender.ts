@@ -1,6 +1,7 @@
-import Request from "../Contracts/Request";
-import Response from "../Contracts/Response";
+import AutoRestClientRequest from "../Contracts/AutoRestClientRequest";
+import AutoRestClientResponse from "../Contracts/AutoRestClientResponse";
 
 export default interface RequestSender {
-    send: (httpRequest: Request) => Promise<Response>;
+    send(httpRequest: AutoRestClientRequest): Promise<AutoRestClientResponse>;
+    cancel(): void;
 }

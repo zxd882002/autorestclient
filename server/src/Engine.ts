@@ -6,14 +6,16 @@ import TypeScriptExecutor from './ScriptExecutors/TypeScriptExecutor';
 import RequestSender from './RequestSenders/RequestSender';
 import ScriptExecutor from './ScriptExecutors/ScriptExecutor';
 import HttpRequestSender from './RequestSenders/HttpRequestSender';
-import Response from './Contracts/Response';
+import Response from './Contracts/AutoRestClientResponse';
 import { Dictionary } from './Contracts/Dictionary';
-import Request from './Contracts/Request';
+import AutoRestClientRequest from './Contracts/AutoRestClientRequest';
 import GrammarAnalyzer from './GrammarAnalyzers/GrammarAnalyzer';
 import HttpGrammarAnalyzer from './GrammarAnalyzers/HttpGrammarAnalyzer';
 
 export default class Engine {
     private environmentConfigure?: EnvironmentConfigure;
+    private sender?: RequestSender;
+
     public get Environment(): EnvironmentConfigure {
         let environment = this.environmentConfigure;
         if (environment === undefined)
@@ -62,7 +64,7 @@ export default class Engine {
         return range;
     }
 
-    public analyzeContent(content: string): Request[] {
+    public analyzeContent(content: string): AutoRestClientRequest[] {
         let [grammarFileAnalyzer] = this.initializeEngine();
         let [requests] = grammarFileAnalyzer.analyze(content);
         return requests;
@@ -73,7 +75,7 @@ export default class Engine {
 
         // convert Requests
         let [requests, environmentName] = grammarAnalyzer.analyze(content);
-        let requestDictionary: Dictionary<string, Request> = {};
+        let requestDictionary: Dictionary<string, AutoRestClientRequest> = {};
         this.convertRequestToDictionary(requests, requestDictionary, range);
         let requestResponseCollection: RequestResponseCollection = new RequestResponseCollection(requestDictionary);
         this.requestResponseCollection = requestResponseCollection;
@@ -103,7 +105,7 @@ export default class Engine {
                 scriptExecutor.executeScript(currentRequest.afterScript);
             }
             catch (error) {
-                let currentResponse = new Response(500, `Error when ${step} for ${currentRequest.name}, Error message: ${error.toString()}`);
+                let currentResponse = new Response(500, `Error when ${step} for ${currentRequest.name}, ${error.toString()}`);
                 requestResponseCollection.CurrentResponse = currentResponse;
                 requestResponseCollection.Responses[name] = currentResponse;
                 break;
@@ -118,7 +120,11 @@ export default class Engine {
         return responseText;
     }
 
-    private convertRequestToDictionary(requests: Request[], requestDictionary: Dictionary<string, Request>, range?: Range) {
+    public cancel(): void {
+        this.sender?.cancel();
+    }
+
+    private convertRequestToDictionary(requests: AutoRestClientRequest[], requestDictionary: Dictionary<string, AutoRestClientRequest>, range?: Range) {
         for (let request of requests) {
             let requestStartLine = request.startLine;
             let requestEndLine = request.endLine;
@@ -138,19 +144,22 @@ export default class Engine {
         let grammarAnalyzer = new HttpGrammarAnalyzer(this.workSpaceFolder, this);
 
         // get environment
-        let environmentConfigure = new EnvironmentConfigure();
-        this.environmentConfigure = environmentConfigure;
+        if (this.environmentConfigure === undefined) {
+            this.environmentConfigure = new EnvironmentConfigure();
+        }
 
         // get executor
         let executor = new TypeScriptExecutor();
 
         // get sender
-        let sender = new HttpRequestSender();
+        if (this.sender === undefined) {
+            this.sender = new HttpRequestSender();
+        }
 
-        return [grammarAnalyzer, environmentConfigure, executor, sender];
+        return [grammarAnalyzer, this.environmentConfigure, executor, this.sender];
     }
 
-    private replaceRequestEnvironmentValue(request: Request, environmentConfigure: EnvironmentConfigure): void {
+    private replaceRequestEnvironmentValue(request: AutoRestClientRequest, environmentConfigure: EnvironmentConfigure): void {
         // url
         request.url = environmentConfigure.replaceEnvironmentValue(request.url);
 

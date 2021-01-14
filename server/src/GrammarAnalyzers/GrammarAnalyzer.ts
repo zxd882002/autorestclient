@@ -1,5 +1,5 @@
-import Request from "../Contracts/Request";
+import AutoRestClientRequest from "../Contracts/AutoRestClientRequest";
 
 export default interface GrammarAnalyzer {
-    analyze(content: string): [Request[], string | undefined];
+    analyze(content: string): [AutoRestClientRequest[], string | undefined];
 }

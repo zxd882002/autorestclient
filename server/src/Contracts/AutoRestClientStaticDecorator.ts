@@ -1,18 +1,18 @@
 import Engine from "../Engine";
-import Request from "./Request";
-import Response from "./Response";
+import AutoRestClientRequest from "./AutoRestClientRequest";
+import AutoRestClientResponse from "./AutoRestClientResponse";
 
 export default class AutoRestClientStaticDecorator {
     static engine: Engine;
 
-    static get Request(): Request {
+    static get Request(): AutoRestClientRequest {
         let request = this.engine.RequestResponseCollection.CurrentRequest;
         if (request === undefined)
             throw new Error("Undefined Request");
         return request;
     }
 
-    static get Response(): Response {
+    static get Response(): AutoRestClientResponse {
         let response = this.engine.RequestResponseCollection.CurrentResponse
         if (response === undefined)
             throw new Error("Undefined Response");

@@ -1,10 +1,11 @@
 import * as fs from 'fs';
-import Request from "../Contracts/Request";
+import AutoRestClientRequest from "../Contracts/AutoRestClientRequest";
 import GuidGenerator from "../Utils/GuidGenerator";
 import HttpGrammarElement from "./HttpGrammarElement";
 import { URI } from "vscode-uri";
 import GrammarAnalyzer from './GrammarAnalyzer';
 import Engine from '../Engine';
+import { stringify } from 'querystring';
 
 export default class HttpGrammarAnalyzer implements GrammarAnalyzer {
     environmentElement: HttpGrammarElement = {
@@ -20,7 +21,7 @@ export default class HttpGrammarAnalyzer implements GrammarAnalyzer {
             }
             return false;
         },
-        onConditionPass(requests: Request[], braceCounter: number) {
+        onConditionPass(requests: AutoRestClientRequest[], braceCounter: number) {
             return [requests, braceCounter, this.environmentName];
         },
         nextElements: []
@@ -41,7 +42,7 @@ export default class HttpGrammarAnalyzer implements GrammarAnalyzer {
             }
             return false;
         },
-        onConditionPass(requests: Request[], braceCounter: number) {
+        onConditionPass(requests: AutoRestClientRequest[], braceCounter: number) {
             this.fileAnalyzer.createRequestIfNotExists(requests, this.lineNumber);
             requests[requests.length - 1].name = this.name;
             return [requests, braceCounter];
@@ -64,7 +65,7 @@ export default class HttpGrammarAnalyzer implements GrammarAnalyzer {
             }
             return false;
         },
-        onConditionPass(requests: Request[], braceCounter: number) {
+        onConditionPass(requests: AutoRestClientRequest[], braceCounter: number) {
             let innerFileUri = URI.parse(`${this.fileAnalyzer.workspaceFolder}/${this.filePath}`);
             const innerContent = fs.readFileSync(innerFileUri.fsPath, 'utf8');
             let innerRequests = this.fileAnalyzer.engine.analyzeContent(innerContent);
@@ -89,7 +90,7 @@ export default class HttpGrammarAnalyzer implements GrammarAnalyzer {
             }
             return false;
         },
-        onConditionPass(requests: Request[], braceCounter: number) {
+        onConditionPass(requests: AutoRestClientRequest[], braceCounter: number) {
             this.fileAnalyzer.createRequestIfNotExists(requests, this.lineNumber);
             braceCounter++;
             return [requests, braceCounter];
@@ -105,7 +106,7 @@ export default class HttpGrammarAnalyzer implements GrammarAnalyzer {
             this.line = lines[lineNumber];;
             return true;
         },
-        onConditionPass(requests: Request[], braceCounter: number) {
+        onConditionPass(requests: AutoRestClientRequest[], braceCounter: number) {
             braceCounter += this.line.match(/\{/g)?.length ?? 0;
             braceCounter -= this.line.match(/\}/g)?.length ?? 0;
             requests[requests.length - 1].beforeScript += this.line;
@@ -125,7 +126,7 @@ export default class HttpGrammarAnalyzer implements GrammarAnalyzer {
             }
             return false;
         },
-        onConditionPass(requests: Request[], braceCounter: number) {
+        onConditionPass(requests: AutoRestClientRequest[], braceCounter: number) {
             braceCounter--;
             return [requests, braceCounter];
         },
@@ -149,7 +150,7 @@ export default class HttpGrammarAnalyzer implements GrammarAnalyzer {
             }
             return false;
         },
-        onConditionPass(requests: Request[], braceCounter: number) {
+        onConditionPass(requests: AutoRestClientRequest[], braceCounter: number) {
             this.fileAnalyzer.createRequestIfNotExists(requests, this.lineNumber);
             let request = requests[requests.length - 1];
             request.method = this.method;
@@ -174,8 +175,12 @@ export default class HttpGrammarAnalyzer implements GrammarAnalyzer {
             }
             return false;
         },
-        onConditionPass(requests: Request[], braceCounter: number) {
-            requests[requests.length - 1].headers[this.headerName] = this.headerValue;
+        onConditionPass(requests: AutoRestClientRequest[], braceCounter: number) {
+            let headers = requests[requests.length - 1].headers;
+            if (headers === undefined) {
+                headers = {};
+            }
+            headers[this.headerName] = this.headerValue;
             return [requests, braceCounter];
         },
         nextElements: []
@@ -194,7 +199,7 @@ export default class HttpGrammarAnalyzer implements GrammarAnalyzer {
             }
             return false;
         },
-        onConditionPass(requests: Request[], braceCounter: number) {
+        onConditionPass(requests: AutoRestClientRequest[], braceCounter: number) {
             braceCounter++;
             requests[requests.length - 1].body += this.line;
             return [requests, braceCounter];
@@ -210,7 +215,7 @@ export default class HttpGrammarAnalyzer implements GrammarAnalyzer {
             this.line = lines[lineNumber];;
             return true;
         },
-        onConditionPass(requests: Request[], braceCounter: number) {
+        onConditionPass(requests: AutoRestClientRequest[], braceCounter: number) {
             braceCounter += this.line.match(/\{/g)?.length ?? 0;
             braceCounter -= this.line.match(/\}/g)?.length ?? 0;
             requests[requests.length - 1].body += this.line
@@ -232,7 +237,7 @@ export default class HttpGrammarAnalyzer implements GrammarAnalyzer {
             }
             return false;
         },
-        onConditionPass(requests: Request[], braceCounter: number) {
+        onConditionPass(requests: AutoRestClientRequest[], braceCounter: number) {
             braceCounter--;
             requests[requests.length - 1].body += this.line;
             return [requests, braceCounter];
@@ -251,7 +256,7 @@ export default class HttpGrammarAnalyzer implements GrammarAnalyzer {
             }
             return false;
         },
-        onConditionPass(requests: Request[], braceCounter: number) {
+        onConditionPass(requests: AutoRestClientRequest[], braceCounter: number) {
             braceCounter++;
             return [requests, braceCounter];
         },
@@ -266,7 +271,7 @@ export default class HttpGrammarAnalyzer implements GrammarAnalyzer {
             this.line = lines[lineNumber];;
             return true;
         },
-        onConditionPass(requests: Request[], braceCounter: number) {
+        onConditionPass(requests: AutoRestClientRequest[], braceCounter: number) {
             braceCounter += this.line.match(/\{/g)?.length ?? 0;
             braceCounter -= this.line.match(/\}/g)?.length ?? 0;
             requests[requests.length - 1].afterScript += this.line;
@@ -286,7 +291,7 @@ export default class HttpGrammarAnalyzer implements GrammarAnalyzer {
             }
             return false;
         },
-        onConditionPass(requests: Request[], braceCounter: number) {
+        onConditionPass(requests: AutoRestClientRequest[], braceCounter: number) {
             braceCounter--;
             return [requests, braceCounter];
         },
@@ -306,7 +311,7 @@ export default class HttpGrammarAnalyzer implements GrammarAnalyzer {
             }
             return false;
         },
-        onConditionPass(requests: Request[], braceCounter: number) {
+        onConditionPass(requests: AutoRestClientRequest[], braceCounter: number) {
             if (requests.length > 0) {
                 requests[requests.length - 1].endLine = this.lineNumber - 1;
                 this.fileAnalyzer.fillName(requests[requests.length - 1]);
@@ -322,7 +327,7 @@ export default class HttpGrammarAnalyzer implements GrammarAnalyzer {
         isConditionPass(lines: string[], lineNumber: number, braceCounter: number) {
             return true;
         },
-        onConditionPass(requests: Request[], braceCounter: number) {
+        onConditionPass(requests: AutoRestClientRequest[], braceCounter: number) {
             // do nothing
             return [requests, braceCounter];
         },
@@ -337,7 +342,7 @@ export default class HttpGrammarAnalyzer implements GrammarAnalyzer {
             this.lineLength = lines.length;
             return true;
         },
-        onConditionPass(requests: Request[], braceCounter: number) {
+        onConditionPass(requests: AutoRestClientRequest[], braceCounter: number) {
             requests[requests.length - 1].endLine = this.lineLength;
             this.fileAnalyzer.fillName(requests[requests.length - 1]);
             return [requests, braceCounter];
@@ -427,11 +432,11 @@ export default class HttpGrammarAnalyzer implements GrammarAnalyzer {
         this.importFileElement.nextElements.push(this.endElement);
     }
 
-    public analyze(content: string): [Request[], string | undefined] {
+    public analyze(content: string): [AutoRestClientRequest[], string | undefined] {
         let emptyLineRegex = /^\s*$/;
         let lineSplitterRegex = /\r?\n/
         let headerElement = this.headerElement;
-        let requests: Request[] = [];
+        let requests: AutoRestClientRequest[] = [];
         let braceCounter = 0;
         let possibleElements = headerElement.nextElements;
         let environmentName = undefined;
@@ -482,13 +487,13 @@ export default class HttpGrammarAnalyzer implements GrammarAnalyzer {
         return [requests, environmentName];
     }
 
-    private createRequestIfNotExists(requests: Request[], startLine: number) {
+    private createRequestIfNotExists(requests: AutoRestClientRequest[], startLine: number) {
         if (requests.length == 0 || requests[requests.length - 1].endLine != -1) {
-            requests.push(new Request(startLine));
+            requests.push(new AutoRestClientRequest(startLine));
         }
     }
 
-    private fillName(request: Request) {
+    private fillName(request: AutoRestClientRequest) {
         if (request.name === "") {
             let urlSplitRegex = /\/(?<content>\w+)/g;
             let match = urlSplitRegex.exec(request.url);
