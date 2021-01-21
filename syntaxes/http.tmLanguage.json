@@ -17,6 +17,14 @@
 				}
 			]
 		},
+		"placeHolder": {
+			"patterns": [
+				{
+					"match": "\\{(\\w+?)\\}|\\{(\\w+?\\|\\w+(,?\\w+)*)}",
+					"name": "variable.other.constant"
+				}
+			]
+		},
 		"request": {
 			"patterns": [
 				{
@@ -42,9 +50,9 @@
 					]
 				},
 				{
-					"begin": "{",
-					"end": "}",
-					"name": "keyword.http.request.body.json",
+					"begin": "\\s*(?=\\[|{)",
+					"end": "\\s*(?<=\\]|})",
+					"name": "keyworld.http.body.json",
 					"patterns": [
 						{
 							"include": "source.json"
@@ -57,16 +65,30 @@
 							"name": "keyword.http.request.method"
 						},
 						"2": {
-							"name": "string.http.request.url"
+							"name": "space.http.request.space"
 						},
 						"3": {
-							"name": "keyword.http.request.http"
+							"patterns": [
+								{
+									"include": "#placeHolder"
+								},
+								{
+									"match": "[^{}]+",
+									"name": "string.http.request.url"
+								}
+							]
 						},
 						"4": {
-							"name": "constant.http.request.version"
+							"name": "space.http.request.space"
+						},
+						"5": {
+							"name": "keyword.http.request.type"
+						},
+						"6": {
+							"name": "constant.numeric.http.request.version"
 						}
 					},
-					"match": "(?i)^(?:(get|post|put|delete|patch|head|options|connect|trace)\\s+)(.+?)(?:\\s+(HTTP)\/(\\d+.\\d+))?$",
+					"match": "(?i)^(?:(get|post|put|delete|patch|head|options|connect|trace))(\\s+)(.+?)(\\s+)(?:(HTTP)\\/(\\d+.\\d+))?$",
 					"name": "http.requestline"
 				},
 				{
@@ -78,7 +100,15 @@
 							"name": "keyword.http.request.http"
 						},
 						"3": {
-							"name": "string.http.request.header.value"
+							"patterns": [
+								{
+									"include": "#placeHolder"
+								},
+								{
+									"match": "[^{}]+",
+									"name": "string.http.request.header.value"
+								}
+							]
 						}
 					},
 					"match": "^([\\w\\-]+)\\s*(\\:)\\s*(.*?)\\s*$",

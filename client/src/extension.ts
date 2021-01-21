@@ -1,83 +1,25 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import * as fs from 'fs';
-import TriggerableProvider from './utils/TriggerableCodeLensProvider'
+import TriggerableCodeLensProvider from './Providers/TriggerableCodeLensProvider'
 import {
 	LanguageClient,
 	LanguageClientOptions,
-	Range,
 	ServerOptions,
 	TransportKind
 } from 'vscode-languageclient/node';
+import WebViewProvider from './Providers/WebViewProvider';
+import RequestCommandProvider from './Providers/RequestCommandProvider';
+import CancelRequestCommandProvider from './Providers/CancelRequestCommandProvider';
 
 let client: LanguageClient;
 
 export function activate(context: vscode.ExtensionContext) {
 	connectServiceLanguageProtocol(context);
-	let triggerableProvider = new TriggerableProvider();
-	context.subscriptions.push(vscode.languages.registerCodeLensProvider('http', triggerableProvider));
-	context.subscriptions.push(vscode.commands.registerCommand("auto-rest-client.request", (range: Range) => {
-		client.sendNotification("auto-rest-client.request", range);
-		client.onNotification("auto-rest-client.onRequesting", () => {
-			triggerableProvider.onDidChangeConfiguration(null);
-		});
-		client.onNotification("auto-rest-client.onRequestComplete", () => {
-			triggerableProvider.onDidChangeConfiguration(null);
-		})
-		client.onNotification("auto-rest-client.response", (response) => {
-			displayOnWebView(response, context);
-		});
-	}));
-	context.subscriptions.push(vscode.commands.registerCommand("auto-rest-client.requestAll", (range: Range) => {
-		client.sendNotification("auto-rest-client.requestAll", range);
-		client.onNotification("auto-rest-client.onRequestingAll", () => {
-			triggerableProvider.onDidChangeConfiguration(null);
-		});
-		client.onNotification("auto-rest-client.onRequestComplete", () => {
-			triggerableProvider.onDidChangeConfiguration(null);
-		})
-		client.onNotification("auto-rest-client.responseAll", (response) => {
-			displayOnWebView(response, context);
-		});
-	}));
-	context.subscriptions.push(vscode.commands.registerCommand("auto-rest-client.cancelRequest", () => {
-		client.sendNotification("auto-rest-client.cancelRequest");
-	}));
-}
-
-async function displayOnWebView(response: string, context: vscode.ExtensionContext): Promise<void> {
-	try {
-		let now = new Date();
-		let year = now.getFullYear().toString();
-		let month = (now.getMonth() + 1).toString();
-		let day = now.getDate().toString();
-		let hour = now.getHours().toString();
-		let minute = now.getMinutes().toString();
-		let second = now.getSeconds().toString();
-
-		if (month.length < 2) month = '0' + month;
-		if (day.length < 2) day = '0' + day;
-		if (hour.length < 2) hour = '0' + hour;
-		if (minute.length < 2) minute = '0' + minute;
-		if (second.length < 2) second = '0' + second;
-
-		let workspaceFolder = vscode.workspace.workspaceFolders[0].uri;
-		let responseFolder = vscode.Uri.parse(`${workspaceFolder}/Responses/`);
-		if (!fs.existsSync(responseFolder.fsPath)) {
-			fs.mkdirSync(responseFolder.fsPath);
-		}
-		let archiveFolder = vscode.Uri.parse(`${responseFolder}/${year}${month}${day}`)
-		if (!fs.existsSync(archiveFolder.fsPath)) {
-			fs.mkdirSync(archiveFolder.fsPath);
-		}
-		let fileUri = vscode.Uri.parse(`${archiveFolder}/Response_${year}${month}${day}_${hour}${minute}${second}.json`);
-		fs.writeFileSync(fileUri.fsPath, response);
-
-		let responseDocument = await vscode.workspace.openTextDocument(fileUri);
-		await vscode.window.showTextDocument(responseDocument)
-	} catch (reason) {
-		vscode.window.showErrorMessage(reason);
-	}
+	let triggerableCodeLensProvider = new TriggerableCodeLensProvider();
+	let webViewProvider = new WebViewProvider();
+	new RequestCommandProvider(client, triggerableCodeLensProvider, webViewProvider, "auto-rest-client.request", "request");
+	new RequestCommandProvider(client, triggerableCodeLensProvider, webViewProvider, "auto-rest-client.requestAll", "request all");
+	new CancelRequestCommandProvider(client, "auto-rest-client.cancelRequest");
 }
 
 function connectServiceLanguageProtocol(context: vscode.ExtensionContext) {

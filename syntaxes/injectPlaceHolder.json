@@ -1,0 +1,15 @@
+{
+    "scopeName": "placeHolder.injection",
+    "injectionSelector": "L:string.quoted.double",
+    "patterns": [
+        {
+            "include": "#placeHolder"
+        }
+    ],
+    "repository": {
+        "placeHolder": {
+            "match": "\\{(\\w+?)\\}|\\{(\\w+?\\|\\w+(,?\\w+)*)}",
+            "name": "variable.other.constant"
+        }
+    }
+}

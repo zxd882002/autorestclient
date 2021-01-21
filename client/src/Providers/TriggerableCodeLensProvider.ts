@@ -1,9 +1,10 @@
 import * as vscode from 'vscode';
-export default class TriggerableProvider implements vscode.CodeLensProvider {
+export default class TriggerableCodeLensProvider implements vscode.CodeLensProvider {
     private _onDidChangeCodeLenses = new vscode.EventEmitter<void>();
     public readonly onDidChangeCodeLenses: vscode.Event<void> = this._onDidChangeCodeLenses.event;
 
     constructor() {
+        vscode.languages.registerCodeLensProvider('http', this);
         vscode.workspace.onDidChangeConfiguration(this.onDidChangeConfiguration);
     }
 

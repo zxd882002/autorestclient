@@ -12,6 +12,7 @@ export const SharedFileName = `${EnvironmentFilePrefix}.${EnvironmentFileSurfix}
 export default class EnvironmentConfigure {
     private environmentConfigures: Dictionary<string, EnvironmentConfigureItem>;
     private workspaceFolder: string;
+    private placeHolderRegexRegex = /{(?<property>\w+?)}|{(?<parameterProperty>\w+?\|\w+(,?\w+)*)}/g;
 
     public constructor() {
         this.environmentConfigures = {};
@@ -85,18 +86,80 @@ export default class EnvironmentConfigure {
     }
 
     public replaceEnvironmentValue(text: string): string {
-        let placeHolderRegexRegex = /{(?<property>\w+?)}/g;
-        let match = placeHolderRegexRegex.exec(text);
+        let match = this.placeHolderRegexRegex.exec(text);
         while (match !== null && match.groups !== undefined) {
             const property = match.groups.property;
-            const [propertyName, parameter] = property.split("|");
-            const value = this.getEnvironmentValue(propertyName, parameter);
+            let value: string | undefined;
+            if (property !== undefined) {
+                value = this.getEnvironmentValue(property);
+            }
+            else {
+                const parameterProperty = match.groups.parameterProperty;
+                const [propertyName, parameter] = parameterProperty.split("|");
+                value = this.getEnvironmentValue(propertyName, parameter);
+            }
             if (value !== undefined) {
                 text = text.replace(`{${property}}`, value);
             }
-            match = placeHolderRegexRegex.exec(text);
+            match = this.placeHolderRegexRegex.exec(text);
         }
         return text;
+    }
+
+    public getEnvironmentConfigureItems(text: string): {
+        startPosition: Number,
+        endPosition: Number,
+        parameter: string | undefined,
+        environmentConfigureItem: EnvironmentConfigureItem
+    }[] {
+        const environmentConfigureItems:
+            {
+                startPosition: Number,
+                endPosition: Number,
+                parameter: string | undefined,
+                environmentConfigureItem: EnvironmentConfigureItem
+            }[] = [];
+
+
+        let match = this.placeHolderRegexRegex.exec(text);
+        let startPosition = 0;
+        let endPosition = 0;
+        while (match !== null && match.groups !== undefined) {
+            const property = match.groups.property;
+            if (property !== undefined) {
+                const environmentConfigureItem = this.environmentConfigures[property];
+                if (environmentConfigureItem !== undefined) {
+                    startPosition = text.indexOf(property, startPosition) - 1;
+                    endPosition = text.indexOf("}", startPosition);
+                    environmentConfigureItems.push({
+                        startPosition: startPosition,
+                        endPosition: endPosition,
+                        parameter: undefined,
+                        environmentConfigureItem: environmentConfigureItem
+                    });
+                }
+            }
+            else {
+                const parameterProperty = match.groups.parameterProperty;
+                const [propertyName, parameter] = parameterProperty.split("|");
+                const environmentConfigureItem = this.environmentConfigures[propertyName];
+                if (environmentConfigureItem !== undefined) {
+                    startPosition = text.indexOf(parameterProperty, startPosition) - 1;
+                    endPosition = text.indexOf("}", startPosition);
+                    environmentConfigureItems.push({
+                        startPosition: startPosition,
+                        endPosition: endPosition,
+                        parameter: parameter,
+                        environmentConfigureItem: environmentConfigureItem
+                    });
+                }
+            }
+
+            startPosition = endPosition;
+            match = this.placeHolderRegexRegex.exec(text);
+        }
+
+        return environmentConfigureItems;
     }
 
     private extractEnvironment(content: string, path: string) {

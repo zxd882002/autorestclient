@@ -2,7 +2,7 @@
     "name": "autorestclient",
     "displayName": "AutoRestClient",
     "description": "Auto Rest Client",
-    "version": "1.1.1",
+    "version": "1.1.2",
     "icon": "rest_icon.png",
     "repository": {
         "type": "git",
@@ -24,7 +24,6 @@
             {
                 "id": "http",
                 "aliases": [
-                    "rest",
                     "http"
                 ],
                 "extensions": [
@@ -39,6 +38,14 @@
                 "language": "http",
                 "scopeName": "source.http",
                 "path": "./syntaxes/http.tmLanguage.json"
+            },
+            {
+                "path": "./syntaxes/injectPlaceHolder.json",
+                "scopeName": "placeHolder.injection",
+                "injectTo": [
+                    "source.json",
+                    "source.http"
+                ]
             }
         ]
     },
@@ -47,7 +54,8 @@
         "compile": "tsc -b",
         "watch": "tsc -b -w",
         "postinstall": "cd client && npm install && cd ../server && npm install && cd ..",
-        "test": "node ./out/test/runTest.js"
+        "test": "node ./out/test/runTest.js",
+        "deploy": "vsce package --out \"./releases\""
     },
     "dependencies": {},
     "devDependencies": {}

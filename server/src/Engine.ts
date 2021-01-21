@@ -11,6 +11,7 @@ import { Dictionary } from './Contracts/Dictionary';
 import AutoRestClientRequest from './Contracts/AutoRestClientRequest';
 import GrammarAnalyzer from './GrammarAnalyzers/GrammarAnalyzer';
 import HttpGrammarAnalyzer from './GrammarAnalyzers/HttpGrammarAnalyzer';
+import EnvironmentConfigureItem from './EnvironmentConfigures/EnvironmentConfigureItem';
 
 export default class Engine {
     private environmentConfigure?: EnvironmentConfigure;
@@ -118,6 +119,24 @@ export default class Engine {
         // get response
         let responseText = requestResponseCollection.getResponseSummary();
         return responseText;
+    }
+
+    public getEnvironmentConfigureItem(content: string, lineNumber: number, character: number): [EnvironmentConfigureItem | undefined, string | undefined] {
+        const [grammarAnalyzer, environmentConfigure] = this.initializeEngine();
+        let [requests, environmentName] = grammarAnalyzer.analyze(content);
+        environmentConfigure.initializeEnvironment(this.workSpaceFolder, environmentName);
+
+        const line = grammarAnalyzer.getLine(content, lineNumber);
+        if (line !== undefined) {
+            const items = environmentConfigure.getEnvironmentConfigureItems(line);
+            for (const item of items) {
+                if (item.startPosition <= character && character <= item.endPosition) {
+                    return [item.environmentConfigureItem, item.parameter];
+                }
+            }
+        }
+
+        return [undefined, undefined];
     }
 
     public cancel(): void {

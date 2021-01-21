@@ -8,6 +8,8 @@ import Engine from '../Engine';
 import { stringify } from 'querystring';
 
 export default class HttpGrammarAnalyzer implements GrammarAnalyzer {
+    private lineSplitterRegex = /\r\n|\r|\n/;
+
     environmentElement: HttpGrammarElement = {
         regex: /^\s*@Env\s+(?<envName>\w+)\s*$/,
         environmentName: String,
@@ -434,14 +436,13 @@ export default class HttpGrammarAnalyzer implements GrammarAnalyzer {
 
     public analyze(content: string): [AutoRestClientRequest[], string | undefined] {
         let emptyLineRegex = /^\s*$/;
-        let lineSplitterRegex = /\r?\n/
         let headerElement = this.headerElement;
         let requests: AutoRestClientRequest[] = [];
         let braceCounter = 0;
         let possibleElements = headerElement.nextElements;
         let environmentName = undefined;
         let lastLineNumber = -1;
-        let lines: string[] = content.split(lineSplitterRegex);
+        let lines: string[] = content.split(this.lineSplitterRegex);
         for (let lineNumber = 0; lineNumber < lines.length; lineNumber++) {
             if (emptyLineRegex.test(lines[lineNumber])) {
                 continue;
@@ -485,6 +486,19 @@ export default class HttpGrammarAnalyzer implements GrammarAnalyzer {
         }
 
         return [requests, environmentName];
+    }
+
+    public getLine(content: string, lineNumber: number): string | undefined {
+        if (lineNumber < 0) {
+            return undefined;
+        }
+
+        let lines: string[] = content.split(this.lineSplitterRegex);
+        if (lineNumber >= lines.length) {
+            return undefined;
+        }
+
+        return lines[lineNumber];
     }
 
     private createRequestIfNotExists(requests: AutoRestClientRequest[], startLine: number) {

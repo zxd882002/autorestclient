@@ -7,7 +7,9 @@ import {
   CodeLensParams,
   CodeLens,
   Range,
-  WorkspaceFolder
+  WorkspaceFolder,
+  TextDocumentPositionParams,
+  Hover
 } from 'vscode-languageserver/node';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import Engine from './Engine';
@@ -19,7 +21,6 @@ export default class Server {
   private connection: any;
   private documents: TextDocuments<TextDocument>;
   private isRequestCalling: boolean;
-  private isRequestCancelling: boolean;
 
   constructor() {
     this.workspaceFolders = [];
@@ -28,7 +29,6 @@ export default class Server {
     this.connection = createConnection(ProposedFeatures.all);
     this.documents = new TextDocuments(TextDocument);
     this.isRequestCalling = false;
-    this.isRequestCancelling = false;
 
     this.connection.onInitialize((params: InitializeParams) => {
       // pre-condition
@@ -44,7 +44,8 @@ export default class Server {
           textDocumentSync: TextDocumentSyncKind.Incremental,
           codeLensProvider: {
             resolveProvider: false
-          }
+          },
+          hoverProvider: true
         }
       };
     });
@@ -95,14 +96,14 @@ export default class Server {
       return codeLenses;
     });
 
-    this.connection.onNotification("auto-rest-client.request", async (range: Range) => {
+    this.connection.onNotification("auto-rest-client.request", async ([range, message]: [Range, string]) => {
       try {
-        console.log("start request...");
+        console.log(`start ${message}...`);
         this.isRequestCalling = true;
         this.connection.sendNotification("auto-rest-client.onRequesting");
         let response: string = await this.engine.execute(this.documentContent, range);
         this.isRequestCalling = false;
-        console.log("request completed!");
+        console.log(`${message} completed!`);
 
         // call back
         this.connection.sendNotification("auto-rest-client.onRequestComplete");
@@ -115,37 +116,30 @@ export default class Server {
       }
     });
 
-    this.connection.onNotification("auto-rest-client.requestAll", async (range: Range) => {
-      try {
-        console.log("start request all...");
-        this.isRequestCalling = true;
-        this.connection.sendNotification("auto-rest-client.onRequestingAll");
-        let response: string = await this.engine.execute(this.documentContent, range);
-        this.isRequestCalling = false;
-        if (!this.isRequestCancelling)
-          console.log("request completed!");
-
-        // call back
-        this.connection.sendNotification("auto-rest-client.onRequestComplete");
-        this.connection.sendNotification("auto-rest-client.responseAll", response);
-      }
-      catch (e) {
-        this.isRequestCalling = false;
-        this.connection.sendNotification("auto-rest-client.onRequestComplete");
-        console.log(e.toString());
-      }
-    })
-
     this.connection.onNotification("auto-rest-client.cancelRequest", () => {
       try {
         console.log("start cancel request...");
-        this.isRequestCancelling = true;
         this.engine.cancel();
         console.log("request cancelled!");
       }
       catch (e) {
         console.log(e.toString());
       }
+    })
+
+    this.connection.onHover((params: TextDocumentPositionParams): Hover | undefined => {
+      this.documentContent = (this.documents.get(params.textDocument.uri) as TextDocument).getText();
+      let [configurationItem, parameter] = this.engine.getEnvironmentConfigureItem(this.documentContent, params.position.line, params.position.character);
+      if (configurationItem === undefined) {
+        return undefined;
+      }
+      return {
+        contents: [
+          `**${configurationItem.configureName}**`,
+          `value: ${configurationItem.configureValue(parameter)}`,
+          `path: ${configurationItem.congigureFileName ?? "Internal Variable"}`
+        ],
+      };
     })
   }
 
