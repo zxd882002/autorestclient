@@ -9,7 +9,9 @@ import {
   Range,
   WorkspaceFolder,
   TextDocumentPositionParams,
-  Hover
+  Hover,
+  Diagnostic,
+  DiagnosticSeverity
 } from 'vscode-languageserver/node';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import Engine from './Engine';
@@ -125,7 +127,7 @@ export default class Server {
       catch (e) {
         console.log(e.toString());
       }
-    })
+    });
 
     this.connection.onHover((params: TextDocumentPositionParams): Hover | undefined => {
       this.documentContent = (this.documents.get(params.textDocument.uri) as TextDocument).getText();
@@ -140,7 +142,39 @@ export default class Server {
           `path: ${configurationItem.congigureFileName ?? "Internal Variable"}`
         ],
       };
-    })
+    });
+
+    this.documents.onDidChangeContent(change => {
+      let diagnostics: Diagnostic[] = [];
+      let content = change.document.getText();
+      let analyzeResult = this.engine.analyzeContent(content);
+
+      if (analyzeResult.errorLine !== undefined && analyzeResult.errorMessage !== undefined) {
+        let errorLine = this.engine.getLine(content, analyzeResult.errorLine);
+        let diagnostic: Diagnostic = {
+          severity: DiagnosticSeverity.Error,
+          range: {
+            start: {
+              line: analyzeResult.errorLine,
+              character: 0
+            },
+            end: {
+              line: analyzeResult.errorLine,
+              character: errorLine === undefined ? 0 : errorLine.length - 1
+            }
+          },
+          message: `${analyzeResult.errorMessage}`,
+          source: 'ex'
+        };
+        diagnostics.push(sendDiagnostics);
+      }
+
+      this.connection.sendDiagnostics(
+        {
+          uri: change.document.uri,
+          diagnostics
+        });
+    });
   }
 
   main() {

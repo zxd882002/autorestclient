@@ -12,6 +12,7 @@ import AutoRestClientRequest from './Contracts/AutoRestClientRequest';
 import GrammarAnalyzer from './GrammarAnalyzers/GrammarAnalyzer';
 import HttpGrammarAnalyzer from './GrammarAnalyzers/HttpGrammarAnalyzer';
 import EnvironmentConfigureItem from './EnvironmentConfigures/EnvironmentConfigureItem';
+import GrammarAnalyzerResult from './GrammarAnalyzers/GrammarAnalyzerResult';
 
 export default class Engine {
     private environmentConfigure?: EnvironmentConfigure;
@@ -39,10 +40,10 @@ export default class Engine {
     }
 
     public getRequestRange(content: string): Range[] {
-        let requests = this.analyzeContent(content);
+        let result = this.analyzeContent(content);
         let ranges = [];
 
-        for (let request of requests) {
+        for (let request of result.requests) {
             if (request.startLine != -1 && request.endLine != -1) {
                 let range: Range = {
                     start: { line: request.startLine, character: 0 },
@@ -65,17 +66,29 @@ export default class Engine {
         return range;
     }
 
-    public analyzeContent(content: string): AutoRestClientRequest[] {
-        let [grammarFileAnalyzer] = this.initializeEngine();
-        let [requests] = grammarFileAnalyzer.analyze(content);
-        return requests;
+    public analyzeContent(content: string): GrammarAnalyzerResult {
+        let grammarAnalyzer = this.getGrammarAnalyzer();
+        let result = grammarAnalyzer.analyze(content);
+        return result;
+    }
+
+    public getLine(content: string, lineNumber: number): string | undefined {
+        let grammarAnalyzer = this.getGrammarAnalyzer();
+        let result = grammarAnalyzer.getLine(content, lineNumber);
+        return result;
     }
 
     public async execute(content: string, range: Range): Promise<string> {
-        let [grammarAnalyzer, environmentConfigure, scriptExecutor, requestSender] = this.initializeEngine();
+        let [environmentConfigure, scriptExecutor, requestSender] = this.initializeEngine();
 
         // convert Requests
-        let [requests, environmentName] = grammarAnalyzer.analyze(content);
+        let result = this.analyzeContent(content);
+        if (result.errorMessage !== undefined) {
+            throw new Error(result.errorMessage);
+        }
+
+        let requests = result.requests;
+        let environmentName = result.environmentName;
         let requestDictionary: Dictionary<string, AutoRestClientRequest> = {};
         this.convertRequestToDictionary(requests, requestDictionary, range);
         let requestResponseCollection: RequestResponseCollection = new RequestResponseCollection(requestDictionary);
@@ -122,11 +135,11 @@ export default class Engine {
     }
 
     public getEnvironmentConfigureItem(content: string, lineNumber: number, character: number): [EnvironmentConfigureItem | undefined, string | undefined] {
-        const [grammarAnalyzer, environmentConfigure] = this.initializeEngine();
-        let [requests, environmentName] = grammarAnalyzer.analyze(content);
-        environmentConfigure.initializeEnvironment(this.workSpaceFolder, environmentName);
+        const [environmentConfigure] = this.initializeEngine();
+        let result = this.analyzeContent(content);
+        environmentConfigure.initializeEnvironment(this.workSpaceFolder, result.environmentName);
 
-        const line = grammarAnalyzer.getLine(content, lineNumber);
+        const line = this.getLine(content, lineNumber);
         if (line !== undefined) {
             const items = environmentConfigure.getEnvironmentConfigureItems(line);
             for (const item of items) {
@@ -158,9 +171,13 @@ export default class Engine {
         }
     }
 
-    private initializeEngine(): [GrammarAnalyzer, EnvironmentConfigure, ScriptExecutor, RequestSender] {
+    private getGrammarAnalyzer(): GrammarAnalyzer {
         // get grammarAnalyzer
         let grammarAnalyzer = new HttpGrammarAnalyzer(this.workSpaceFolder, this);
+        return grammarAnalyzer;
+    }
+
+    private initializeEngine(): [EnvironmentConfigure, ScriptExecutor, RequestSender] {
 
         // get environment
         if (this.environmentConfigure === undefined) {
@@ -175,7 +192,7 @@ export default class Engine {
             this.sender = new HttpRequestSender();
         }
 
-        return [grammarAnalyzer, this.environmentConfigure, executor, this.sender];
+        return [this.environmentConfigure, executor, this.sender];
     }
 
     private replaceRequestEnvironmentValue(request: AutoRestClientRequest, environmentConfigure: EnvironmentConfigure): void {
