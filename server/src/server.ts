@@ -166,7 +166,7 @@ export default class Server {
           message: `${analyzeResult.errorMessage}`,
           source: 'ex'
         };
-        diagnostics.push(sendDiagnostics);
+        diagnostics.push(diagnostic);
       }
 
       this.connection.sendDiagnostics(
